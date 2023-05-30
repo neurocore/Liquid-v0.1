@@ -7,5 +7,5 @@ __dummy.html
 .vs
 .vscode
 
-.exe
-.pdb
+*.exe
+*.pdb
