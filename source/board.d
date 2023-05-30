@@ -29,13 +29,13 @@ public:
 
   void clear()
   {
-		foreach (p; Piece.BP .. Piece.size) piece[p] = 0;
+    foreach (p; Piece.BP .. Piece.size) piece[p] = 0;
     foreach (c; Color.Black .. Color.size) occ[c] = Empty;
-		foreach (x; SQ.A1 .. SQ.size) square[x] = Piece.NOP;
-		undo[0] = Undo.init;
-		color = Color.White;
-		ply = 0;
-	}
+    foreach (x; SQ.A1 .. SQ.size) square[x] = Piece.NOP;
+    undo[0] = Undo.init;
+    color = Color.White;
+    ply = 0;
+  }
 
   void place(bool full = false)(SQ sq, Piece p)
   {

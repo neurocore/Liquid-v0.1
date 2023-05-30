@@ -112,8 +112,8 @@ enum Castling
 Castling to_castling(const char c)
 {
   size_t i = indexOf("kKqQ", c);
-	if (i == -1) return Castling.init;
-	return cast(Castling) (1 << i);
+  if (i == -1) return Castling.init;
+  return cast(Castling) (1 << i);
 }
 
 immutable int[64] uncastle = () @safe pure nothrow

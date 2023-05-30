@@ -1,9 +1,7 @@
 module main;
 
 import std.stdio;
-import square;
-import piece;
-import moves;
+import square, piece, moves;
 
 void main()
 {
