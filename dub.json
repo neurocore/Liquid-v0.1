@@ -1,0 +1,8 @@
+{
+	"name": "liquid-v0-1",
+	"authors": [
+		"Nick Kurgin"
+	],
+	"description": "Chess engine",
+	"copyright": "Copyright © 2023, Kurgin"
+}
