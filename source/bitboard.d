@@ -66,7 +66,7 @@ ulong reset(ulong bb, ubyte index)
   return bb & !(Bit << index);
 }
 
-ulong bitscan(ulong bb)
+uint bitscan(ulong bb)
 {
   ushort i = (bb.lsb() * Debruijn) >> 58;
   return bitscan64[i];
@@ -79,6 +79,27 @@ uint popcnt(ulong bb)
   ushort h2 = (bb >> 16) & 0xFFFF;
   ushort h3 =  bb        & 0xFFFF;
   return LUT[h0] + LUT[h1] + LUT[h2] + LUT[h3];
+}
+
+string to_bitboard(ulong bb)
+{
+  import std.format;
+
+  string str;
+  foreach_reverse (int rank; 0..8)
+  {
+    str ~= format("%d ", rank + 1);
+
+    foreach (int file; 0..8)
+    {
+      SQ sq = sq(file, rank);
+      str ~= bb.get(sq) ? 'x' : '.';
+      str ~= ' ';
+    }
+    str ~= "\n";
+  }
+  str ~= "  a b c d e f g h\n\n";
+  return str;
 }
 
 ulong shift_u(ulong bb) { return bb << 8; }

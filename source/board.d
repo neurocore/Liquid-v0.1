@@ -37,8 +37,19 @@ public:
     ply = 0;
   }
 
+  Piece opIndex(const SQ sq) const
+  {
+		return square[sq];
+	}
+
+  int fifty() const @property
+  {
+		return undo[ply].fifty;
+	}
+
   void place(bool full = false)(SQ sq, Piece p)
   {
+    import std.stdio;
     piece[p]     ^= (Bit << sq);
     occ[p.color] ^= (Bit << sq);
     square[sq]    = p;
@@ -86,12 +97,12 @@ public:
 
         place(sq, p);
         sq++;
+      }
 
-        if (!(sq & 7)) // End of row
-        {
-          sq -= 16;
-          if (sq < 0) break;
-        }
+      if (!(sq & 7)) // row wrap
+      {
+        sq -= 16;
+        if (sq < 0) break;
       }
     }
 
@@ -128,9 +139,30 @@ public:
     return fen;
   }
 
+  string toString()
+  {
+    import std.range, std.uni, std.utf, std.stdio;
+    static immutable wchar[] pieces = ['♟', '♙', '♞', '♘', '♝', '♗', '♜', '♖', '♛', '♕', '♚', '♔', '.', '.'];
+    string str;
+    foreach_reverse (int rank; 0..8)
+    {
+      str ~= format("%d ", rank + 1);
+
+      foreach (int file; 0..8)
+      {
+        SQ sq = sq(file, rank);
+        Piece p = square[sq];
+
+        str ~= pieces[p];
+        str ~= ' ';
+      }
+      str ~= "\n";
+    }
+    str ~= "  a b c d e f g h\n\n";
+    return str;
+  }
+
   
-
-
 }
 
 

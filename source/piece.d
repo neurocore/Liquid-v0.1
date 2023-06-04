@@ -1,7 +1,7 @@
 module piece;
 import std.algorithm, std.conv, std.string;
 
-enum Color : ubyte { Black, White, None, size }
+enum Color : ubyte { Black, White, size, None }
 
 Color opp(const Color c) { return cast(Color) !c; }
 
