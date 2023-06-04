@@ -1,11 +1,3 @@
-.dub
-docs.json
-__dummy.html
-*.o
-*.obj
-
-.vs
-.vscode
-
-*.exe
-*.pdb
+*
+!*.d
+!.gitignore
