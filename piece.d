@@ -38,7 +38,7 @@ PieceType to_piecetype(const char c)
   return cast(PieceType) i;
 }
 
-char to_char(const PieceType p) { return ".PNBRQK#"[p]; }
+char to_char(const PieceType p) { return "pnbrqk."[p]; }
 
 enum Piece : ubyte { BP, WP, BN, WN, BB, WB, BR, WR, BQ, WQ, BK, WK, NOP, size }
 

@@ -142,7 +142,7 @@ public:
   string toString()
   {
     import std.range, std.uni, std.utf, std.stdio;
-    static immutable wchar[] pieces = ['♟', '♙', '♞', '♘', '♝', '♗', '♜', '♖', '♛', '♕', '♚', '♔', '.', '.'];
+    static immutable wstring pieces = "♟♙♞♘♝♗♜♖♛♕♚♔.."w;
     string str;
     foreach_reverse (int rank; 0..8)
     {

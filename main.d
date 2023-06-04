@@ -31,7 +31,8 @@ void main()
 
   auto bb = r_att(Empty, SQ.E4);
   writeln(bb);
-  // writeln(bb.to_bitboard());
+  writeln(bb.to_bitboard());
+  writeln(q_att(Empty, SQ.D3).to_bitboard());
 
-  // readln();
+  readln();
 }
