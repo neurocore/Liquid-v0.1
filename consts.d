@@ -1,23 +1,25 @@
 module consts;
 
-enum Engine
+const string Name = "Liquid";
+const string Vers = "0.1";
+const string Auth = "Nick Kurgin";
+
+const bool DarkTheme = true; // to settings?
+
+struct Time
 {
-  Name = "Liquid",
-  Vers = "0.1",
-  Auth = "Nick Kurgin",
+  enum Default = 60000;
 }
 
-enum TimeDefault = 60000;
-
-enum Limits
+struct Limits
 {
-  Moves = 256,
-  Plies = 128,
+  enum Moves = 256;
+  enum Plies = 128;
 }
 
-enum Val : int
+struct Val
 {
-  Draw  = 0,
-  Inf   = 32767,
-  Mate  = 32000,
+  enum Draw  = 0;
+  enum Inf   = 32767;
+  enum Mate  = 32000;
 }

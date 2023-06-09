@@ -1,7 +1,8 @@
 module main;
 
 import std.stdio;
-import square, piece, moves, bitboard, board, magics;
+import square, piece, moves, consts, engine;
+import protocol, bitboard, board, magics;
 
 version(Windows)
 {
@@ -17,8 +18,11 @@ void main()
     auto _ = SetConsoleOutputCP(65001);
   }
 
-  writeln("Chess engine Liquid v0.1 by Nick Kurgin (c) 2023");
+  writefln("Chess engine %s v%s by %s (c) 2023", Name, Vers, Auth);
   writefln("%s", Color.White.opp());
+
+  writefln("Moves: %s", Limits.Moves);
+  writefln("Plies: %s", Limits.Plies);
 
   Move move = Move(SQ.E2, SQ.F3, MT.NCapProm);
 
@@ -34,5 +38,7 @@ void main()
   writeln(bb.to_bitboard());
   writeln(q_att(Empty, SQ.D3).to_bitboard());
 
-  readln();
+  auto engine = new Engine();
+  engine.start();
+  engine.destroy();
 }

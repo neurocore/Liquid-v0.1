@@ -142,7 +142,9 @@ public:
   string toString()
   {
     import std.range, std.uni, std.utf, std.stdio;
-    static immutable wstring pieces = "♟♙♞♘♝♗♜♖♛♕♚♔.."w;
+    static immutable wstring pieces = DarkTheme
+      ? "♙♟♘♞♗♝♖♜♕♛♔♚.."w 
+      : "♟♙♞♘♝♗♜♖♛♕♚♔.."w;
     string str;
     foreach_reverse (int rank; 0..8)
     {
@@ -161,8 +163,6 @@ public:
     str ~= "  a b c d e f g h\n\n";
     return str;
   }
-
-  
 }
 
 
