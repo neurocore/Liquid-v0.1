@@ -4,8 +4,7 @@ import bitboard;
 
 // Black Magics were discovered by Volker Annuss
 
-private enum Rook = 0;
-private enum Bishop = 1;
+private enum { Rook, Bishop };
 
 private struct Helper
 {
@@ -183,7 +182,7 @@ private:
   static ulong get_mask(bool bishop)(SQ sq)
   {
     ulong result = Empty;
-    foreach (Dir dir; dirs[+bishop])
+    foreach (Dir dir; dirs[cast(int)bishop])
     {
       ulong pre = Empty;
       ulong bit = Bit << sq;
@@ -203,7 +202,7 @@ private:
   static ulong get_att(bool bishop)(SQ sq, ulong blocks)
   {
     ulong result = Empty;
-    foreach (Dir dir; dirs[+bishop])
+    foreach (Dir dir; dirs[cast(int)bishop])
     {
       ulong bit = Bit << sq;
       while (true)

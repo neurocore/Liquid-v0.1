@@ -7,7 +7,7 @@ Color opp(const Color c) { return cast(Color) !c; }
 
 Color to_color(const char c)
 {
-  size_t i = indexOf("wb", c);
+  size_t i = indexOf("bw", c);
   if (i == -1) i = Color.size;
   return cast(Color) i;
 }

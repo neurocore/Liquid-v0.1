@@ -40,6 +40,14 @@ immutable uint[0xFFFF] LUT = () @safe pure nothrow
   return arr;
 }();
 
+ulong bit(SQ sq) { return Bit << cast(int)sq; }
+ulong bits(SQ[] sqs)
+{
+  ulong bb = Empty;
+  foreach (sq; sqs) bb |= bit(sq);
+  return bb;
+}
+
 ulong lsb(ulong bb)  { return bb & (Empty - bb); }
 ulong rlsb(ulong bb) { return bb & (bb - Bit); }
 
@@ -88,7 +96,7 @@ string to_bitboard(ulong bb)
   string str;
   foreach_reverse (int rank; 0..8)
   {
-    str ~= format("%d ", rank + 1);
+    str ~= format("%d | ", rank + 1);
 
     foreach (int file; 0..8)
     {
@@ -98,19 +106,20 @@ string to_bitboard(ulong bb)
     }
     str ~= "\n";
   }
-  str ~= "  a b c d e f g h\n\n";
+  str ~= "  +----------------   \n";
+  str ~= "    a b c d e f g h\n\n";
   return str;
 }
 
 ulong shift_u(ulong bb) { return bb << 8; }
 ulong shift_d(ulong bb) { return bb >> 8; }
-ulong shift_l(ulong bb) { return (bb & ~File.A) >> 1; }
-ulong shift_r(ulong bb) { return (bb & ~File.H) << 1; }
+ulong shift_l(ulong bb) { return (bb & ~FileA) >> 1; }
+ulong shift_r(ulong bb) { return (bb & ~FileH) << 1; }
 
-ulong shift_ul(ulong bb) { return (bb & ~File.A) << 7; }
-ulong shift_ur(ulong bb) { return (bb & ~File.H) << 9; }
-ulong shift_dl(ulong bb) { return (bb & ~File.A) >> 9; }
-ulong shift_dr(ulong bb) { return (bb & ~File.H) >> 7; }
+ulong shift_ul(ulong bb) { return (bb & ~FileA) << 7; }
+ulong shift_ur(ulong bb) { return (bb & ~FileH) << 9; }
+ulong shift_dl(ulong bb) { return (bb & ~FileA) >> 9; }
+ulong shift_dr(ulong bb) { return (bb & ~FileH) >> 7; }
 
 enum Dir {U, D, L, R, UL, UR, DL, DR}
 
@@ -133,21 +142,21 @@ ulong shift(ulong bb, Dir dir)
 {
   import utils;
 
-  equal(shift_u (FULL), (FULL & ~Rank._1));
-  equal(shift_d (FULL), (FULL & ~Rank._8));
-  equal(shift_l (FULL), (FULL & ~File.H));
-  equal(shift_r (FULL), (FULL & ~File.A));
-  equal(shift_ul(FULL), (FULL & ~File.H & ~Rank._1));
-  equal(shift_ur(FULL), (FULL & ~File.A & ~Rank._1));
-  equal(shift_dl(FULL), (FULL & ~File.H & ~Rank._8));
-  equal(shift_dr(FULL), (FULL & ~File.A & ~Rank._8));
+  equal("sht_full_u" , shift_u (Full), (Full & ~Rank1));
+  equal("sht_full_d" , shift_d (Full), (Full & ~Rank8));
+  equal("sht_full_l" , shift_l (Full), (Full & ~FileH));
+  equal("sht_full_r" , shift_r (Full), (Full & ~FileA));
+  equal("sht_full_ul", shift_ul(Full), (Full & ~FileH & ~Rank1));
+  equal("sht_full_ur", shift_ur(Full), (Full & ~FileA & ~Rank1));
+  equal("sht_full_dl", shift_dl(Full), (Full & ~FileH & ~Rank8));
+  equal("sht_full_dr", shift_dr(Full), (Full & ~FileA & ~Rank8));
 
-  equal(shift_u (Rank._8), EMPTY);
-  equal(shift_d (Rank._1), EMPTY);
-  equal(shift_l (File.A),  EMPTY);
-  equal(shift_r (File.H),  EMPTY);
-  equal(shift_ul(Rank._8 | File.A), EMPTY);
-  equal(shift_ur(Rank._8 | File.H), EMPTY);
-  equal(shift_dl(Rank._1 | File.A), EMPTY);
-  equal(shift_dr(Rank._2 | File.H), EMPTY);
+  equal("sht_to_0_u" , shift_u (Rank8), Empty);
+  equal("sht_to_0_d" , shift_d (Rank1), Empty);
+  equal("sht_to_0_l" , shift_l (FileA), Empty);
+  equal("sht_to_0_r" , shift_r (FileH), Empty);
+  equal("sht_to_0_ul", shift_ul(Rank8 | FileA), Empty);
+  equal("sht_to_0_ur", shift_ur(Rank8 | FileH), Empty);
+  equal("sht_to_0_dl", shift_dl(Rank1 | FileA), Empty);
+  equal("sht_to_0_dr", shift_dr(Rank1 | FileH), Empty);
 }

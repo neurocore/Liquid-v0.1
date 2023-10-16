@@ -15,6 +15,80 @@ enum SQ : ubyte
   size, None
 }
 
+// i surrender
+
+alias A1 = SQ.A1;
+alias A2 = SQ.A2;
+alias A3 = SQ.A3;
+alias A4 = SQ.A4;
+alias A5 = SQ.A5;
+alias A6 = SQ.A6;
+alias A7 = SQ.A7;
+alias A8 = SQ.A8;
+
+alias B1 = SQ.B1;
+alias B2 = SQ.B2;
+alias B3 = SQ.B3;
+alias B4 = SQ.B4;
+alias B5 = SQ.B5;
+alias B6 = SQ.B6;
+alias B7 = SQ.B7;
+alias B8 = SQ.B8;
+
+alias C1 = SQ.C1;
+alias C2 = SQ.C2;
+alias C3 = SQ.C3;
+alias C4 = SQ.C4;
+alias C5 = SQ.C5;
+alias C6 = SQ.C6;
+alias C7 = SQ.C7;
+alias C8 = SQ.C8;
+
+alias D1 = SQ.D1;
+alias D2 = SQ.D2;
+alias D3 = SQ.D3;
+alias D4 = SQ.D4;
+alias D5 = SQ.D5;
+alias D6 = SQ.D6;
+alias D7 = SQ.D7;
+alias D8 = SQ.D8;
+
+alias E1 = SQ.E1;
+alias E2 = SQ.E2;
+alias E3 = SQ.E3;
+alias E4 = SQ.E4;
+alias E5 = SQ.E5;
+alias E6 = SQ.E6;
+alias E7 = SQ.E7;
+alias E8 = SQ.E8;
+
+alias F1 = SQ.F1;
+alias F2 = SQ.F2;
+alias F3 = SQ.F3;
+alias F4 = SQ.F4;
+alias F5 = SQ.F5;
+alias F6 = SQ.F6;
+alias F7 = SQ.F7;
+alias F8 = SQ.F8;
+
+alias G1 = SQ.G1;
+alias G2 = SQ.G2;
+alias G3 = SQ.G3;
+alias G4 = SQ.G4;
+alias G5 = SQ.G5;
+alias G6 = SQ.G6;
+alias G7 = SQ.G7;
+alias G8 = SQ.G8;
+
+alias H1 = SQ.H1;
+alias H2 = SQ.H2;
+alias H3 = SQ.H3;
+alias H4 = SQ.H4;
+alias H5 = SQ.H5;
+alias H6 = SQ.H6;
+alias H7 = SQ.H7;
+alias H8 = SQ.H8;
+
 string toString(SQ sq)
 {
   char fileChar = to!char('a' + sq.file);
@@ -55,48 +129,44 @@ SQ to_sq(string s)
   return s.length > 1 ? sq(s[0] - 'a', s[1] - '1') : SQ.None;
 }
 
-enum File : ulong
+struct File
 {
-  A = 0x0101010101010101,
-  B = 0x0202020202020202,
-  C = 0x0404040404040404,
-  D = 0x0808080808080808,
-  E = 0x1010101010101010,
-  F = 0x2020202020202020,
-  G = 0x4040404040404040,
-  H = 0x8080808080808080,
-  size
+  ulong bb;
+  alias bb this;
 }
 
-File file(const int i)
+static immutable File FileA = {0x0101010101010101UL};
+static immutable File FileB = {0x0202020202020202UL};
+static immutable File FileC = {0x0404040404040404UL};
+static immutable File FileD = {0x0808080808080808UL};
+static immutable File FileE = {0x1010101010101010UL};
+static immutable File FileF = {0x2020202020202020UL};
+static immutable File FileG = {0x4040404040404040UL};
+static immutable File FileH = {0x8080808080808080UL};
+
+static immutable File[] file_bb =
+[
+  FileA, FileB, FileC, FileD,
+  FileE, FileF, FileG, FileH
+];
+
+struct Rank
 {
-  static immutable File[] arr =
-  [
-    File.A, File.B, File.C, File.D,
-    File.E, File.F, File.G, File.H
-  ];
-  return arr[i];
+  ulong bb;
+  alias bb this;
 }
 
-enum Rank : ulong
-{
-  _1 = 0x00000000000000ffUL,
-  _2 = 0x000000000000ff00UL,
-  _3 = 0x0000000000ff0000UL,
-  _4 = 0x00000000ff000000UL,
-  _5 = 0x000000ff00000000UL,
-  _6 = 0x0000ff0000000000UL,
-  _7 = 0x00ff000000000000UL,
-  _8 = 0xff00000000000000UL,
-  size
-}
+static immutable Rank Rank1 = {0x00000000000000ffUL};
+static immutable Rank Rank2 = {0x000000000000ff00UL};
+static immutable Rank Rank3 = {0x0000000000ff0000UL};
+static immutable Rank Rank4 = {0x00000000ff000000UL};
+static immutable Rank Rank5 = {0x000000ff00000000UL};
+static immutable Rank Rank6 = {0x0000ff0000000000UL};
+static immutable Rank Rank7 = {0x00ff000000000000UL};
+static immutable Rank Rank8 = {0xff00000000000000UL};
 
-Rank rank(const int i)
-{
-  static immutable Rank[] arr =
-  [
-    Rank._1, Rank._2, Rank._3, Rank._4,
-    Rank._5, Rank._6, Rank._7, Rank._8
-  ];
-  return arr[i];
-}
+static immutable Rank[] rank_bb =
+[
+  Rank1, Rank2, Rank3, Rank4,
+  Rank5, Rank6, Rank7, Rank8
+];

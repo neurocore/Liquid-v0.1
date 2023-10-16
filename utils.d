@@ -1,17 +1,29 @@
 module utils;
 import std.stdio, std.format;
+import std.conv, std.traits;
 
 alias Sink = void delegate(const(char)[]);
 alias Fmt = FormatSpec!char;
 
-void equal(ulong lhc, ulong rhc)
+template EnumAlias(alias EnumType)
 {
-  import std.stdio;
-  if (lhc == rhc) return;
-  
-  writefln("Equality failed: 0x%016X == 0x%016X", lhc, rhc);
-  writeln("File: ", __FILE__, " Line: ", __LINE__);
-  assert(lhc == rhc);
+  static foreach (member; EnumMembers!EnumType)
+  {
+    alias member = EnumType.member;
+  }
+}
+
+void equal(T)(string name, T lhc, T rhc, string file = __FILE__, size_t line = __LINE__)
+{
+  string num = is(T == ulong) ? "0x%016X" : "%d";
+
+  if (lhc != rhc)
+  {
+    writefln("Equality failed: " ~ num ~ " == " ~ num, lhc, rhc);
+    writeln("Name: ", name);
+    writeln("File: ", file, " - line ", __LINE__, "\n");
+    assert(false);
+  }
 }
 
 void todo(string text)

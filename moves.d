@@ -1,6 +1,6 @@
 module moves;
 import std.string;
-import square, piece, utils;
+import square, piece, utils, bitboard;
 
 /// Move Type
 enum MT : ushort
@@ -103,10 +103,18 @@ PieceType promoted(MT mt) { return cast(PieceType) (1 + (mt & 3)); }
 enum Castling
 {
   BK = 1 << 0,
-  BQ = 1 << 1,
-  WK = 1 << 2,
+  WK = 1 << 1,
+  BQ = 1 << 2,
   WQ = 1 << 3,
   ALL = BK | BQ | WK | WQ
+}
+
+enum Span
+{
+  BK = [F1, G1].bits(),
+  WK = [F8, G8].bits(),
+  BQ = [B1, C1, D1].bits(),
+  WQ = [B8, C8, D8].bits(),
 }
 
 Castling to_castling(const char c)
@@ -122,12 +130,12 @@ immutable int[64] uncastle = () @safe pure nothrow
   foreach (SQ i; SQ.A1 .. SQ.size)
     arr[i] = Castling.ALL;
 
-  arr[SQ.A1] ^= Castling.WQ;
-  arr[SQ.E1] ^= Castling.WQ | Castling.WK;
-  arr[SQ.H1] ^= Castling.WK;
-  arr[SQ.A8] ^= Castling.BQ;
-  arr[SQ.E8] ^= Castling.BQ | Castling.BK;
-  arr[SQ.H8] ^= Castling.BK;
+  arr[A1] ^= Castling.WQ;
+  arr[E1] ^= Castling.WQ | Castling.WK;
+  arr[H1] ^= Castling.WK;
+  arr[A8] ^= Castling.BQ;
+  arr[E8] ^= Castling.BQ | Castling.BK;
+  arr[H8] ^= Castling.BK;
 
   return arr;
 }();
