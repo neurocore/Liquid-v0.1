@@ -3,7 +3,7 @@ import std.array, std.ascii, std.string, std.conv;
 import bitboard, square, consts;
 import piece, moves, utils;
 
-struct Board
+class Board
 {
   struct Undo
   {
@@ -33,6 +33,11 @@ struct Board
     undo[0] = Undo.init;
     color = Color.White;
     ply = 0;
+  }
+
+  Color to_move() const
+  {
+    return color;
   }
 
   Piece opIndex(const SQ sq) const
@@ -78,7 +83,6 @@ struct Board
 
   void set(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
   {
-    import std.stdio;
     SQ sq = A8;
 
     string[] parts = fen.split();
@@ -110,7 +114,6 @@ struct Board
     foreach (ch; parts[1]) // parsing color
     {
       color = ch.to_color();
-      writeln(ch, " - ", color);
     }
 
     foreach (ch; parts[2]) // parsing castling
@@ -139,7 +142,7 @@ struct Board
     return fen;
   }
 
-  string toString()
+  override string toString()
   {
     import std.range, std.stdio;
     string str;

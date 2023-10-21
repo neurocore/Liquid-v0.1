@@ -26,13 +26,20 @@ void equal(T)(string name, T lhc, T rhc, string file = __FILE__, size_t line = _
   }
 }
 
-void todo(string text)
+void todo(string text, string file = __FILE__, size_t line = __LINE__)
 {
-  version(Debug)
-    writefln("TODO: %s:%d - %s\n", __FILE__, __LINE__, text);
+  //debug writefln("TODO: %s:%d - %s\n", file, line, text);
 }
 
 void error(string text)
 {
   stderr.writeln("error: ", text, "\n");
+}
+
+bool input_available()
+{
+  return stdin.readln().length > 0;
+
+  //char[1] buf;
+  //return stdin.tryPeek!(char[1])(buf) != 0;
 }

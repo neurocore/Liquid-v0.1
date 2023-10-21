@@ -1,35 +1,31 @@
 module command;
 import std.stdio;
-import engine, moves;
+import engine, moves, timer;
 
-interface Cmd
+abstract class Cmd
 {
-  void execute(ref Engine E);
+  bool exit = false;
+  void execute(Engine E);
 }
+
 
 class Cmd_Unknown : Cmd
 {
-  string str;
-  this(string str)
-  {
-    this.str = str;
-  }
+  private string str;
+  this(string str) { this.str = str; }
 
-  void execute(ref Engine E)
+  override void execute(Engine E)
   {
-    writeln("Unknown command: ", str); // if debug?
+    debug writeln("Unknown command: \"", str, "\"");
   }
 }
 
 class Cmd_Response : Cmd
 {
-  string str;
-  this(string str)
-  {
-    this.str = str;
-  }
+  private string str;
+  this(string str) { this.str = str; }
 
-  void execute(ref Engine E)
+  override void execute(Engine E)
   {
     writeln(str);
   }
@@ -37,7 +33,7 @@ class Cmd_Response : Cmd
 
 class Cmd_NewGame : Cmd
 {
-  void execute(ref Engine E)
+  override void execute(Engine E)
   {
     E.new_game();
   }
@@ -45,8 +41,8 @@ class Cmd_NewGame : Cmd
 
 class Cmd_Pos : Cmd
 {
-  string fen;
-  Move[] moves;
+  private string fen;
+  private Move[] moves;
 
   this(string fen, Move[] moves)
   {
@@ -54,37 +50,32 @@ class Cmd_Pos : Cmd
     this.moves = moves;
   }
 
-  void execute(ref Engine E)
+  override void execute(Engine E)
   {
-    E.set_position(fen);
+    E.set_pos(fen);
     foreach (move; moves)
       E.do_move(move);
   }
 }
 
-struct Time {}
-
 class Cmd_Go : Cmd
 {
-  bool inf;
-  Time time;
+  private TimeControl tc;
+  this(TimeControl tc) { this.tc = tc; }
 
-  this(bool inf, Time time)
+  override void execute(Engine E)
   {
-    this.inf = inf;
-    this.time = time;
-  }
-
-  void execute(ref Engine E)
-  {
-    E.go(inf, time);
+    E.go(tc);
   }
 }
 
 class Cmd_Quit : Cmd
 {
-  void execute(ref Engine E)
+  this() { this.exit = true; }
+
+  override void execute(Engine E)
   {
+    writeln("Good to see you again");
     E.quit();
   }
 }

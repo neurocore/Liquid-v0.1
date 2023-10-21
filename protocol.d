@@ -1,15 +1,14 @@
 module protocol;
-import std.stdio;
-import std.file;
-import std.conv;
-import engine;
+import std.stdio, std.format, std.array;
+import std.file, std.conv;
+import consts, command, options;
 
 abstract class Protocol
 {
 public:
   static Protocol * detect();
   void greet();
-  bool parse(Engine E);
+  Cmd parse(string line, Options options);
 }
 
 class UCI : Protocol
@@ -33,9 +32,26 @@ public:
     writeln("Hello from UCI!");
   }
 
-  override bool parse(Engine E)
+  override Cmd parse(string line, Options options)
   {
-    writeln("Parsing UCI protocol...");
-    return true;
+    string[] parts = line.split(" ");
+    if (parts.length <= 0) return new Cmd_Unknown(line);
+
+    const string cmd = parts[0];
+
+    if (cmd == "uci")
+    {
+      string str = format
+      (
+        "id name %s v%s\n" ~ "id %s\n" ~ "%s" ~ "uciok",
+        Name, Vers, Auth, options
+      );
+      return new Cmd_Response(str);
+    }
+    else if (cmd == "quit" || cmd == "exit") return new Cmd_Quit;
+    else if (cmd == "isready") return new Cmd_Response("readyok");
+    else if (cmd == "setoptions") return new Cmd_Response("readyok");
+
+    return new Cmd_Unknown(line);
   }
 }

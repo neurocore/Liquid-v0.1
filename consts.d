@@ -4,8 +4,6 @@ const string Name = "Liquid";
 const string Vers = "0.1";
 const string Auth = "Nick Kurgin";
 
-const bool DarkTheme = true; // to settings?
-
 struct Time
 {
   enum Default = 60000;
