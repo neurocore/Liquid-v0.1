@@ -1,6 +1,5 @@
 module engine;
-import std.stdio;
-import std.string;
+import std.stdio, std.string;
 import consts, command, moves;
 import piece, board, protocol;
 import solver, solver_pvs;
@@ -8,6 +7,8 @@ import timer, options;
 
 class Engine
 {
+  Options options;
+
   this()
   {
     P = new UCI;
@@ -17,12 +18,14 @@ class Engine
     options = new Options;
   }
 
+  const(Board) board() const { return B; }
+
   void start()
   {
-    writeln(format("%v", options));
+    debug writeln(format("%v", options));
 
     new_game();
-    writeln(B);
+    debug writeln(B);
 
     bool running;
     do
@@ -51,6 +54,11 @@ class Engine
     S[1].stop();
   }
 
+  void set_debug(bool val)
+  {
+    options.flag_debug = val;
+  }
+
   void set_pos(string fen)
   {
     stop();
@@ -76,12 +84,11 @@ class Engine
 
   void quit()
   {
-
+    // No action
   }
 
 private:
   Board B;
   Protocol P;
   Solver[2] S;
-  Options options;
 }

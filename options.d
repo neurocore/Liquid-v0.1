@@ -1,7 +1,5 @@
 module options;
-import std.conv;
-import std.variant;
-import std.format;
+import std.conv, std.format, std.range;
 import utils;
 
 enum OptionType { None, Check, Spin, Combo, Button, String }
@@ -23,23 +21,39 @@ abstract class Option
 {
   protected OptionType type_ = OptionType.None;
   string val() const;
+  string def() const;
   OptionType type() const { return type_; }
   void toString(scope Sink sink, Fmt fmt) const
   {
-    string f = fmt.spec == 'v' ? "[%s]" : "default %s";
-    sink(format(f, val()));
+    if (fmt.spec == 'v')
+    {
+      sink(format("[%s]", val()));
+    }
+    else
+    {
+      sink(format("default %s", def()));
+    }
   }
+  void set(string val);
 }
 
 class OptionCheck : Option
 {
   private bool val_, def_;
   override string val() const { return val_.to!string; }
+  override string def() const { return def_.to!string; }
 
   this(bool val)
   {
     type_ = OptionType.Check;
     val_ = def_ = val;
+  }
+
+  override void set(string val)
+  {
+    if (val.empty()) return;
+    bool i = cast(bool)val.safe_to!int;
+    val_ = val.safe_to!bool(i);
   }
 }
 
@@ -48,6 +62,7 @@ class OptionSpin : Option
   private int val_, def_;
   private int min_, max_;
   override string val() const { return val_.to!string; }
+  override string def() const { return def_.to!string; }
 
   this(int val, int min, int max)
   {
@@ -59,11 +74,22 @@ class OptionSpin : Option
 
   override void toString(scope Sink sink, Fmt fmt) const
   {
-    string f = fmt.spec == 'v'
-             ? "[%s | %s - %s]"
-             : "default %s min %s max %s";
+    if (fmt.spec == 'v')
+    {
+      sink(format("[%s | %s - %s]", val_, min_, max_));
+    }
+    else
+    {
+      sink(format("default %s min %s max %s", def_, min_, max_));
+    }
+  }
 
-    sink(format(f, val_, min_, max_));
+  override void set(string val)
+  {
+    if (val.empty()) return;
+    val_ = val.safe_to!int;
+    if (val_ < min_) val_ = min_;
+    if (val_ > max_) val_ = max_;
   }
 }
 
@@ -79,10 +105,8 @@ class OptionCombo : Option
     strings_ = strings;
   }
 
-  override string val() const
-  {
-    return strings_[val_];
-  }
+  override string val() const { return strings_[val_]; }
+  override string def() const { return strings_[def_]; }
 
   override void toString(scope Sink sink, Fmt fmt) const
   {
@@ -94,8 +118,15 @@ class OptionCombo : Option
     }
     else
     {
-      sink(format("default %s var %s", val(), strings_.join(" var ")));
+      sink(format("default %s var %s", def_, strings_.join(" var ")));
     }
+  }
+
+  override void set(string val)
+  {
+    import std.algorithm;
+    if (strings_.canFind(val))
+      val_ = cast(int)strings_.countUntil(val);
   }
 }
 
@@ -103,6 +134,7 @@ class OptionButton : Option
 {
   private string text_;
   override string val() const { return text_.to!string; }
+  override string def() const { return text_.to!string; }
 
   this(string text)
   {
@@ -110,10 +142,9 @@ class OptionButton : Option
     text_ = text;
   }
 
-  override void toString(scope Sink sink, Fmt fmt) const
+  override void set(string val)
   {
-    string f = fmt.spec == 'v' ? "[%s]" : "default %s";
-    sink(format(f, text_));
+    // Unable by design
   }
 }
 
@@ -121,17 +152,23 @@ class OptionString : Option
 {
   private string val_, def_;
   override string val() const { return val_.to!string; }
+  override string def() const { return def_.to!string; }
 
   this(string val)
   {
     type_ = OptionType.String;
     val_ = def_ = val;
   }
+
+  override void set(string val)
+  {
+    val_ = val;
+  }
 }
 
 class Options
 {
-  bool flag_debug;
+  bool flag_debug = false;
   private Option[string] options;
   private string[] order;
 
@@ -150,6 +187,12 @@ class Options
   {
     options[name] = opt;
     order ~= name;
+  }
+
+  void set(string name, string val)
+  {
+    if (!(name in options)) return;
+    options[name].set(val);
   }
 
   void toString(scope Sink sink, Fmt fmt) const

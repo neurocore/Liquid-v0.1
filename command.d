@@ -1,5 +1,5 @@
 module command;
-import std.stdio;
+import std.stdio, std.format;
 import engine, moves, timer;
 
 abstract class Cmd
@@ -9,14 +9,36 @@ abstract class Cmd
 }
 
 
-class Cmd_Unknown : Cmd
+enum Bad { Empty, Unknown, Incomplete, Invalid }
+
+class Cmd_Bad : Cmd
 {
+  private Bad bad;
   private string str;
-  this(string str) { this.str = str; }
+  this(string str, Bad bad = Bad.Unknown)
+  {
+    this.str = str;
+    this.bad = bad;
+  }
 
   override void execute(Engine E)
   {
-    debug writeln("Unknown command: \"", str, "\"");
+    if (bad == Bad.Empty) return;
+    string err = format("%s", bad) ~ " command \"%s\"";
+    string answer = format(err, str);
+
+    debug
+    {
+      writeln(answer);
+    }
+    else
+    {
+      if (E.options.flag_debug)
+      {
+        writeln("info string ", answer);
+        stdout.flush();
+      }
+    }
   }
 }
 
@@ -28,6 +50,38 @@ class Cmd_Response : Cmd
   override void execute(Engine E)
   {
     writeln(str);
+    stdout.flush();
+  }
+}
+
+class Cmd_Debug : Cmd
+{
+  private bool flag_debug;
+  this(bool val)
+  {
+    this.flag_debug = val;
+  }
+
+  override void execute(Engine E)
+  {
+    E.set_debug(flag_debug);
+  }
+}
+
+class Cmd_Option : Cmd
+{
+  private string name;
+  private string val;
+  this(string name, string val)
+  {
+    this.name = name;
+    this.val = val;
+  }
+
+  override void execute(Engine E)
+  {
+    E.options.set(name, val);
+    debug writefln("%v", E.options);
   }
 }
 
@@ -36,6 +90,14 @@ class Cmd_NewGame : Cmd
   override void execute(Engine E)
   {
     E.new_game();
+  }
+}
+
+class Cmd_Stop : Cmd
+{
+  override void execute(Engine E)
+  {
+    E.stop();
   }
 }
 
@@ -55,6 +117,8 @@ class Cmd_Pos : Cmd
     E.set_pos(fen);
     foreach (move; moves)
       E.do_move(move);
+
+    writeln(E.board);
   }
 }
 
@@ -75,7 +139,7 @@ class Cmd_Quit : Cmd
 
   override void execute(Engine E)
   {
-    writeln("Good to see you again");
+    debug writeln("Good to see you again");
     E.quit();
   }
 }

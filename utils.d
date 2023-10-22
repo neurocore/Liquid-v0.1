@@ -1,6 +1,7 @@
 module utils;
 import std.stdio, std.format;
 import std.conv, std.traits;
+import std.array, std.string;
 
 alias Sink = void delegate(const(char)[]);
 alias Fmt = FormatSpec!char;
@@ -42,4 +43,36 @@ bool input_available()
 
   //char[1] buf;
   //return stdin.tryPeek!(char[1])(buf) != 0;
+}
+
+string highlight(string[] parts, int num)
+{
+  parts[num] = "[" ~ parts[num] ~ "]";
+  return parts.join(" ");
+}
+
+T safe_to(T)(string s, T def = T.init)
+{
+  try
+  {
+    T value = s.to!T;
+    return value;
+  }
+  catch (ConvException e)
+  {
+    return def;
+  }
+}
+
+bool try_parse(T)(string s, out T value)
+{
+  try
+  {
+    value = s.to!T;
+    return true;
+  }
+  catch (ConvException e)
+  {
+    return false;
+  }
 }

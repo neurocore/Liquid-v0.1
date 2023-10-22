@@ -21,3 +21,8 @@ struct Val
   enum Inf   = 32767;
   enum Mate  = 32000;
 }
+
+struct Pos
+{
+  enum Init = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+}

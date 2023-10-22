@@ -81,7 +81,7 @@ class Board
     }
   }
 
-  void set(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+  void set(string fen = Pos.Init)
   {
     SQ sq = A8;
 
@@ -142,27 +142,31 @@ class Board
     return fen;
   }
 
-  override string toString()
+  override string toString() const
   {
-    import std.range, std.stdio;
-    string str;
-    foreach_reverse (int rank; 0..8)
+    debug
     {
-      str ~= format("%d | ", rank + 1);
-
-      foreach (int file; 0..8)
+      import std.range, std.stdio;
+      string str;
+      foreach_reverse (int rank; 0..8)
       {
-        SQ sq = sq(file, rank);
-        Piece p = square[sq];
-        str ~= to_char(p);
-        str ~= ' ';
+        str ~= format("%d | ", rank + 1);
+
+        foreach (int file; 0..8)
+        {
+          SQ sq = sq(file, rank);
+          Piece p = square[sq];
+          str ~= to_char(p);
+          str ~= ' ';
+        }
+        str ~= "\n";
       }
-      str ~= "\n";
+      str ~= "  +----------------   ";
+      str ~= to!string(color) ~ " to move\n";
+      str ~= "    a b c d e f g h\n\n";
+      return str;
     }
-    str ~= "  +----------------   ";
-    str ~= to!string(color) ~ " to move\n";
-    str ~= "    a b c d e f g h\n\n";
-    return str;
+    else return "";
   }
 
   // Just playing around
