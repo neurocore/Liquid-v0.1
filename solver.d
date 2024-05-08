@@ -1,5 +1,6 @@
 module solver;
-import timer, piece, board, moves, consts, engine;
+import types, timer, piece, board;
+import moves, consts, engine;
 
 class Solver
 {
@@ -9,10 +10,9 @@ class Solver
   }
   abstract Move get_move(MS time);
   void set(const ref Board board) {}
-  ulong perft(int depth) { return 0; }
+  u64 perft(int depth) { return 0; }
   void stop() {}
   void set_analysis(bool val) {}
-  bool input_available() const { return true; }
 
 protected:
   Engine engine = null;
@@ -25,4 +25,13 @@ class Reader : Solver
     super(engine);
   }
   override Move get_move(MS time) { return Move(); }
+}
+
+struct Undo // Alpha-beta-like node state
+{
+  State state;
+  // Val pst;
+  // u64 hash;
+  Move curr, best;
+  Move[2] killer;
 }

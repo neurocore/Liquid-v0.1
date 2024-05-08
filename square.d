@@ -1,8 +1,8 @@
 module square;
 import std.algorithm, std.conv, std.string, std.range;
-import utils;
+import types, utils;
 
-enum SQ : ubyte
+enum SQ : u8
 {
   A1, B1, C1, D1, E1, F1, G1, H1,
   A2, B2, C2, D2, E2, F2, G2, H2,
@@ -14,80 +14,7 @@ enum SQ : ubyte
   A8, B8, C8, D8, E8, F8, G8, H8,
   size, None
 }
-
-// i surrender
-
-alias A1 = SQ.A1;
-alias A2 = SQ.A2;
-alias A3 = SQ.A3;
-alias A4 = SQ.A4;
-alias A5 = SQ.A5;
-alias A6 = SQ.A6;
-alias A7 = SQ.A7;
-alias A8 = SQ.A8;
-
-alias B1 = SQ.B1;
-alias B2 = SQ.B2;
-alias B3 = SQ.B3;
-alias B4 = SQ.B4;
-alias B5 = SQ.B5;
-alias B6 = SQ.B6;
-alias B7 = SQ.B7;
-alias B8 = SQ.B8;
-
-alias C1 = SQ.C1;
-alias C2 = SQ.C2;
-alias C3 = SQ.C3;
-alias C4 = SQ.C4;
-alias C5 = SQ.C5;
-alias C6 = SQ.C6;
-alias C7 = SQ.C7;
-alias C8 = SQ.C8;
-
-alias D1 = SQ.D1;
-alias D2 = SQ.D2;
-alias D3 = SQ.D3;
-alias D4 = SQ.D4;
-alias D5 = SQ.D5;
-alias D6 = SQ.D6;
-alias D7 = SQ.D7;
-alias D8 = SQ.D8;
-
-alias E1 = SQ.E1;
-alias E2 = SQ.E2;
-alias E3 = SQ.E3;
-alias E4 = SQ.E4;
-alias E5 = SQ.E5;
-alias E6 = SQ.E6;
-alias E7 = SQ.E7;
-alias E8 = SQ.E8;
-
-alias F1 = SQ.F1;
-alias F2 = SQ.F2;
-alias F3 = SQ.F3;
-alias F4 = SQ.F4;
-alias F5 = SQ.F5;
-alias F6 = SQ.F6;
-alias F7 = SQ.F7;
-alias F8 = SQ.F8;
-
-alias G1 = SQ.G1;
-alias G2 = SQ.G2;
-alias G3 = SQ.G3;
-alias G4 = SQ.G4;
-alias G5 = SQ.G5;
-alias G6 = SQ.G6;
-alias G7 = SQ.G7;
-alias G8 = SQ.G8;
-
-alias H1 = SQ.H1;
-alias H2 = SQ.H2;
-alias H3 = SQ.H3;
-alias H4 = SQ.H4;
-alias H5 = SQ.H5;
-alias H6 = SQ.H6;
-alias H7 = SQ.H7;
-alias H8 = SQ.H8;
+mixin(GenAliases!SQ);
 
 string toString(SQ sq)
 {
@@ -101,23 +28,25 @@ SQ toSQ(string str)
   if (str.length < 2) return SQ.None;
   int rank = str[0] - 'a';
   int file = str[1] - '1';
-  return sq(file, rank);
+  return to_sq(file, rank);
 }
 
-SQ opBinary(string op : "+")(SQ a, int shift)
+SQ add(SQ a, int shift)
 {
-  return cast(SQ) (a + shift);
+  int b = a + shift;
+  return b > H8 ? SQ.None : cast(SQ)b;
 }
 
-SQ opBinary(string op : "-")(SQ a, int shift)
+SQ sub(SQ a, int shift)
 {
-  return cast(SQ) (a - shift);
+  int b = a - shift;
+  return b < A1 ? SQ.None : cast(SQ)b;
 }
 
 int rank(const SQ x) { return x >> 3; }
 int file(const SQ x) { return x & 7; }
 
-SQ sq(const int f, const int r)
+SQ to_sq(const int f, const int r)
 {
   if (0 <= f && f < 8 && 0 <= r && r < 8)
     return cast(SQ) ((r << 3) + f);
@@ -126,12 +55,12 @@ SQ sq(const int f, const int r)
 
 SQ to_sq(string s)
 {
-  return s.length > 1 ? sq(s[0] - 'a', s[1] - '1') : SQ.None;
+  return s.length > 1 ? to_sq(s[0] - 'a', s[1] - '1') : SQ.None;
 }
 
 struct File
 {
-  ulong bb;
+  u64 bb;
   alias bb this;
 }
 
@@ -152,7 +81,7 @@ static immutable File[] file_bb =
 
 struct Rank
 {
-  ulong bb;
+  u64 bb;
   alias bb this;
 }
 

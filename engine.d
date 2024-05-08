@@ -18,7 +18,7 @@ class Engine
     options = new Options;
   }
 
-  const(Board) board() const { return B; }
+  Board board() { return B; }
 
   void start()
   {
@@ -52,6 +52,12 @@ class Engine
   {
     S[0].stop();
     S[1].stop();
+  }
+
+  void perft(int depth = 1)
+  {
+    S[0].perft(depth);
+    S[1].perft(depth);
   }
 
   void set_debug(bool val)

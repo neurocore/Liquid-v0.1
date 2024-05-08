@@ -1,9 +1,9 @@
 module protocol;
 import std.stdio, std.format, std.array;
 import std.file, std.conv;
+import std.algorithm;
 import consts, utils, moves;
 import command, options;
-import std.algorithm;
 
 abstract class Protocol
 {
@@ -87,6 +87,11 @@ public:
     else if (cmd == "isready") return new Cmd_Response("readyok");
     else if (cmd == "ucinewgame") return new Cmd_NewGame;
     else if (cmd == "stop") return new Cmd_Stop;
+    else if (cmd == "perft")
+    {
+      string depth = parts.length > 1 ? reader.get_word() : "1";
+      return new Cmd_Perft(depth.safe_to!int(1));
+    }
     else if (cmd == "debug")
     {
       if (parts.length < 2) return new Cmd_Bad(line ~ " ~~~", Bad.Incomplete);
@@ -111,7 +116,7 @@ public:
     }
     else if (cmd == "position")
     {
-      if (parts.length < 3) return new Cmd_Bad(parts[0] ~ " [fen <string> | moves <string>]", Bad.Incomplete);
+      if (parts.length < 2) return new Cmd_Bad(parts[0] ~ " [fen <string> | moves <string>]", Bad.Incomplete);
       
       string fen, moves;
       string op = reader.get_word();
@@ -122,12 +127,14 @@ public:
       }
       else if (op == "fen")
       {
+        if (parts.length < 3) return new Cmd_Bad(parts[0] ~ " fen <string>", Bad.Incomplete);
         fen = reader.get_phrase(["moves"]);
         op = reader.get_word();
       }
 
       if (op == "moves")
       {
+        if (parts.length < 3) return new Cmd_Bad(parts[0] ~ " moves <string>", Bad.Incomplete);
         moves = reader.get_phrase();
       }
 

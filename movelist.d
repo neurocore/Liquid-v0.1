@@ -1,7 +1,5 @@
 module movelist;
-import consts;
-import square;
-import moves;
+import consts, square, moves;
 
 alias Valuator = int function(Move);
 
@@ -11,18 +9,19 @@ struct MoveVal
   int val;
 }
 
-class MoveList
+class MoveListGen(bool simple = false)
 {
   this(Move hashmove = Move())
   {
     this.hashmove = hashmove;
+    clear();
   }
 
   void clear(Move hash_move = Move())
   {
-    last = first = moves.ptr;
+    curr = last = first = moves.ptr;
     hashmove = Move();
-    if (!hash_move.is_empty)
+    if (hash_move)
     {
       add(hash_move, 100000);
       hashmove = hash_move;
@@ -32,26 +31,28 @@ class MoveList
   bool   empty() const { return last == first; }
   size_t count() const { return last -  first; }
 
-  Move get_next_move()
+  ref Move front()
   {
-    if (empty()) return Move();
-    return (first++).move;
-  }
+    if (simple) return first.move;
 
-  Move get_best_move(int lower_bound = -int.max)
-  {
-    if (empty()) return Move();
-    MoveVal * best = first;
+    curr = first;
     for (MoveVal * ptr = first + 1; ptr != last; ++ptr)
     {
-      if (ptr.val > best.val)
-      {
-        best = ptr;
-      }
+      if (ptr.val > curr.val) curr = ptr;
     }
-    Move move = best.move;
-    remove(best);
-    return move;
+    return curr.move;
+  }
+
+  void popFront()
+  {
+    if (simple)
+    {
+      first++;
+    }
+    else
+    {
+      remove(curr);
+    }
   }
 
   void add(Move move, int val = 0)
@@ -92,20 +93,23 @@ class MoveList
     }
   }
 
-  void print() const
+  override string toString() const
   {
-    import std.stdio;
+    import std.format;
+    string str;
     for (const(MoveVal) * ptr = first; ptr != last; ptr++)
     {
-      writefln("%v - %i", ptr.move, ptr.val);
+      str ~= format("%v - %i", ptr.move, ptr.val);
     }
-    writeln();
+    return str ~ "\n";
   }
 
 private:
   Move hashmove;
   MoveVal[Limits.Moves] moves;
-  MoveVal * first, last;
+  MoveVal * first, last, curr;
+  bool simple = false;
+  int lower_bound = -int.max; // TODO: not implemented
 
   void remove(MoveVal * ptr)
   {
@@ -113,3 +117,6 @@ private:
     --last;
   }
 }
+
+alias MoveListSimple = MoveListGen!true;
+alias MoveList = MoveListGen!false;

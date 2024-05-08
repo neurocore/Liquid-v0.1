@@ -2,21 +2,31 @@ module utils;
 import std.stdio, std.format;
 import std.conv, std.traits;
 import std.array, std.string;
+import std.algorithm;
 
 alias Sink = void delegate(const(char)[]);
 alias Fmt = FormatSpec!char;
 
-template EnumAlias(alias EnumType)
+template GenAliases(T)
 {
-  static foreach (member; EnumMembers!EnumType)
+  import std.format, std.traits;
+
+  string GenAliases()
   {
-    alias member = EnumType.member;
+    string str;
+    foreach (T member; EnumMembers!T)
+    {
+      string name = format("%s", member);
+      if (name == "size") break;
+      str ~= "alias " ~ name ~ " = " ~ T.stringof ~ "." ~ name ~ ";\n";
+    }
+    return str;
   }
 }
 
 void equal(T)(string name, T lhc, T rhc, string file = __FILE__, size_t line = __LINE__)
 {
-  string num = is(T == ulong) ? "0x%016X" : "%d";
+  string num = is(T == u64) ? "0x%016X" : "%d";
 
   if (lhc != rhc)
   {
@@ -75,4 +85,9 @@ bool try_parse(T)(string s, out T value)
   {
     return false;
   }
+}
+
+void zeros(T)(ref T obj)
+{
+  obj.each!"a = 0"; // no alloc
 }

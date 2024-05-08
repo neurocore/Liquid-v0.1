@@ -1,9 +1,10 @@
 module moves;
 import std.string;
-import square, piece, utils, bitboard;
+import types, square, piece;
+import utils, bitboard;
 
 /// Move Type
-enum MT : ushort
+enum MT : u16
 {
   Quiet,     // PC12 (Promotion, Capture, Flag_1, Flag_2)
   Pawn2,
@@ -24,7 +25,7 @@ enum MT : ushort
 
 struct Move // newtype paradigm
 {
-  private ushort move;
+  private u16 move;
   alias move this;
 
   enum
@@ -35,7 +36,7 @@ struct Move // newtype paradigm
 
   this(SQ from, SQ to, MT mt = MT.Quiet)
   {
-    move = cast(ushort) (from | (to << 6) | (mt << 12));
+    move = cast(u16) (from | (to << 6) | (mt << 12));
   }
 
   this(string str)
@@ -64,7 +65,15 @@ struct Move // newtype paradigm
     return cast(MT) (move >> 12);
   }
 
-  bool is_empty() const @property { return move == None || move == Null; }
+  bool is_empty() const @property
+  {
+    return move == None || move == Null;
+  }
+
+  bool opCast(T)()
+  {
+    if (is(T == bool)) return !is_empty;
+  }
 
   void toString(scope Sink sink, Fmt fmt) const
   {
@@ -72,8 +81,8 @@ struct Move // newtype paradigm
     {
       if      (move == None) sink("[None]");
       else if (move == Null) sink("[Null]");
-      else if (mt == MT.KCastle) sink("o-o");
-      else if (mt == MT.QCastle) sink("o-o-o");
+      else if (mt == MT.KCastle) sink("O-O");
+      else if (mt == MT.QCastle) sink("O-O-O");
       else
       {
         sink(from.toString());
@@ -99,9 +108,13 @@ bool is_pawn2(MT mt)  { return mt == MT.Pawn2; }
 bool is_castle(MT mt) { return mt == MT.KCastle || mt == MT.QCastle; }
 
 PieceType promoted(MT mt) { return cast(PieceType) (1 + (mt & 3)); }
+PieceType promoted(Move move) { return promoted(move.mt); }
+Piece promoted(MT mt, Color col) { return to_piece(promoted(mt), col); }
+Piece promoted(Move move, Color col) { return promoted(move.mt, col); }
 
-enum Castling
+enum Castling : u8
 {
+  NO = 0,
   BK = 1 << 0,
   WK = 1 << 1,
   BQ = 1 << 2,
@@ -111,23 +124,33 @@ enum Castling
 
 enum Span
 {
-  BK = [F1, G1].bits(),
-  WK = [F8, G8].bits(),
-  BQ = [B1, C1, D1].bits(),
-  WQ = [B8, C8, D8].bits(),
+  BK = [F8, G8].bits(),
+  WK = [F1, G1].bits(),
+  BQ = [B8, C8, D8].bits(),
+  WQ = [B1, C1, D1].bits(),
 }
 
 Castling to_castling(const char c)
 {
   size_t i = indexOf("kKqQ", c);
-  if (i == -1) return Castling.init;
+  if (i < 0 || i > 3) return Castling.init;
   return cast(Castling) (1 << i);
+}
+
+string to_string(Castling castling, string fill = "")
+{
+  string str;
+  str ~= castling & Castling.WK ? "K" : fill;
+  str ~= castling & Castling.WQ ? "Q" : fill;
+  str ~= castling & Castling.BK ? "k" : fill;
+  str ~= castling & Castling.BQ ? "q" : fill;
+  return str;
 }
 
 immutable int[64] uncastle = () @safe pure nothrow
 {
-  uint[64] arr;
-  foreach (SQ i; SQ.A1 .. SQ.size)
+  u32[64] arr;
+  foreach (SQ i; A1 .. SQ.size)
     arr[i] = Castling.ALL;
 
   arr[A1] ^= Castling.WQ;

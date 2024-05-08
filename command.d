@@ -101,6 +101,17 @@ class Cmd_Stop : Cmd
   }
 }
 
+class Cmd_Perft : Cmd
+{
+  private int depth;
+  this(int depth) { this.depth = depth; }
+  
+  override void execute(Engine E)
+  {
+    E.perft(depth);
+  }
+}
+
 class Cmd_Pos : Cmd
 {
   private string fen;

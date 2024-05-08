@@ -1,7 +1,7 @@
 module bitboard;
-import square;
+import types, square;
 
-enum : ulong
+enum : u64
 {
   Empty    = 0x0000000000000000,
   Full     = 0xFFFFFFFFFFFFFFFF,
@@ -12,7 +12,7 @@ enum : ulong
   Debruijn = 0x03f79d71b4cb0a89,
 }
 
-immutable uint[64] bitscan64 =
+immutable u32[64] bitscan64 =
 [
    0,  1, 48,  2, 57, 49, 28,  3,
   61, 58, 50, 42, 38, 29, 17,  4,
@@ -24,13 +24,13 @@ immutable uint[64] bitscan64 =
   25, 14, 19,  9, 13,  8,  7,  6
 ];
 
-immutable uint[0xFFFF] LUT = () @safe pure nothrow
+immutable u32[0xFFFF] LUT = () @safe pure nothrow
 {
-  uint[0xFFFF] arr;
-  foreach (ushort i; 0 .. 0xFFFF)
+  u32[0xFFFF] arr;
+  foreach (u16 i; 0 .. 0xFFFF)
   {
     arr[i] = 0;
-    ushort n = i;
+    u16 n = i;
     while (n != 0)
     {
       arr[i]++;
@@ -40,56 +40,56 @@ immutable uint[0xFFFF] LUT = () @safe pure nothrow
   return arr;
 }();
 
-ulong bit(SQ sq) { return Bit << cast(int)sq; }
-ulong bits(SQ[] sqs)
+u64 bit(SQ sq) { return Bit << cast(int)sq; }
+u64 bits(SQ[] sqs)
 {
-  ulong bb = Empty;
+  u64 bb = Empty;
   foreach (sq; sqs) bb |= bit(sq);
   return bb;
 }
 
-ulong lsb(ulong bb)  { return bb & (Empty - bb); }
-ulong rlsb(ulong bb) { return bb & (bb - Bit); }
+u64 lsb(u64 bb)  { return bb & (Empty - bb); }
+u64 rlsb(u64 bb) { return bb & (bb - Bit); }
 
-ulong msb(ulong bb)
+u64 msb(u64 bb)
 {
-  uint n = 0;
+  u32 n = 0;
 
   while (bb >>= 1) n++;
   return Bit << n;
 }
 
-bool get(ulong bb, ubyte index)
+bool get(u64 bb, u8 index)
 {
   return cast(bool) (bb & (Bit << index));
 }
 
-ulong set(ulong bb, ubyte index)
+u64 set(u64 bb, u8 index)
 {
   return bb | (Bit << index);
 }
 
-ulong reset(ulong bb, ubyte index)
+u64 reset(u64 bb, u8 index)
 {
   return bb & !(Bit << index);
 }
 
-uint bitscan(ulong bb)
+SQ bitscan(u64 bb)
 {
-  ushort i = (bb.lsb() * Debruijn) >> 58;
-  return bitscan64[i];
+  u16 i = (bb.lsb() * Debruijn) >> 58;
+  return cast(SQ)bitscan64[i];
 }
 
-uint popcnt(ulong bb)
+u32 popcnt(u64 bb)
 {
-  ushort h0 =  bb >> 48;
-  ushort h1 = (bb >> 32) & 0xFFFF;
-  ushort h2 = (bb >> 16) & 0xFFFF;
-  ushort h3 =  bb        & 0xFFFF;
+  u16 h0 =  bb >> 48;
+  u16 h1 = (bb >> 32) & 0xFFFF;
+  u16 h2 = (bb >> 16) & 0xFFFF;
+  u16 h3 =  bb        & 0xFFFF;
   return LUT[h0] + LUT[h1] + LUT[h2] + LUT[h3];
 }
 
-string to_bitboard(ulong bb)
+string to_bitboard(u64 bb)
 {
   import std.format;
 
@@ -100,7 +100,7 @@ string to_bitboard(ulong bb)
 
     foreach (int file; 0..8)
     {
-      SQ sq = sq(file, rank);
+      SQ sq = to_sq(file, rank);
       str ~= bb.get(sq) ? 'x' : '.';
       str ~= ' ';
     }
@@ -111,19 +111,19 @@ string to_bitboard(ulong bb)
   return str;
 }
 
-ulong shift_u(ulong bb) { return bb << 8; }
-ulong shift_d(ulong bb) { return bb >> 8; }
-ulong shift_l(ulong bb) { return (bb & ~FileA) >> 1; }
-ulong shift_r(ulong bb) { return (bb & ~FileH) << 1; }
+u64 shift_u(u64 bb) { return bb << 8; }
+u64 shift_d(u64 bb) { return bb >> 8; }
+u64 shift_l(u64 bb) { return (bb & ~FileA) >> 1; }
+u64 shift_r(u64 bb) { return (bb & ~FileH) << 1; }
 
-ulong shift_ul(ulong bb) { return (bb & ~FileA) << 7; }
-ulong shift_ur(ulong bb) { return (bb & ~FileH) << 9; }
-ulong shift_dl(ulong bb) { return (bb & ~FileA) >> 9; }
-ulong shift_dr(ulong bb) { return (bb & ~FileH) >> 7; }
+u64 shift_ul(u64 bb) { return (bb & ~FileA) << 7; }
+u64 shift_ur(u64 bb) { return (bb & ~FileH) << 9; }
+u64 shift_dl(u64 bb) { return (bb & ~FileA) >> 9; }
+u64 shift_dr(u64 bb) { return (bb & ~FileH) >> 7; }
 
 enum Dir {U, D, L, R, UL, UR, DL, DR}
 
-ulong shift(ulong bb, Dir dir)
+u64 shift(u64 bb, Dir dir)
 {
   final switch (dir)
   {

@@ -1,6 +1,5 @@
 module magics;
-import square;
-import bitboard;
+import types, square, bitboard;
 
 // Black Magics were discovered by Volker Annuss
 
@@ -8,8 +7,8 @@ private enum { Rook, Bishop };
 
 private struct Helper
 {
-  uint offset;
-  ulong magic;
+  u32 offset;
+  u64 magic;
 }
 
 private immutable Helper[64][2] helpers =
@@ -153,12 +152,12 @@ private static class Magics
 private:
   struct Entry
   {
-    ulong * ptr;
-    ulong notmask;
-    ulong blackmagic;
+    u64 * ptr;
+    u64 notmask;
+    u64 blackmagic;
   }
 
-  static ulong[88507] attacks;
+  static u64[88507] attacks;
   static Entry[64][2] entries;
 
   static immutable Dir[4][2] dirs =
@@ -167,9 +166,9 @@ private:
     [Dir.DL, Dir.DR, Dir.UL, Dir.UR] // Bishop
   ];
 
-  static ulong index_to_u64(int index, int bits, ulong mask)
+  static u64 index_to_u64(int index, int bits, u64 mask)
   {
-    ulong result = ~mask;
+    u64 result = ~mask;
     for (int i = 0; i < bits; i++)
     {
       int j = bitscan(mask);
@@ -179,13 +178,13 @@ private:
     return result;
   }
 
-  static ulong get_mask(bool bishop)(SQ sq)
+  static u64 get_mask(bool bishop)(SQ sq)
   {
-    ulong result = Empty;
+    u64 result = Empty;
     foreach (Dir dir; dirs[cast(int)bishop])
     {
-      ulong pre = Empty;
-      ulong bit = Bit << sq;
+      u64 pre = Empty;
+      u64 bit = Bit << sq;
 
       while (true)
       {
@@ -199,12 +198,12 @@ private:
     return result;
   }
 
-  static ulong get_att(bool bishop)(SQ sq, ulong blocks)
+  static u64 get_att(bool bishop)(SQ sq, u64 blocks)
   {
-    ulong result = Empty;
+    u64 result = Empty;
     foreach (Dir dir; dirs[cast(int)bishop])
     {
-      ulong bit = Bit << sq;
+      u64 bit = Bit << sq;
       while (true)
       {
         bit = shift(bit, dir);
@@ -215,7 +214,7 @@ private:
     return result;
   }
 
-  static int transform(ulong blocks, ulong magic, int bits)
+  static int transform(u64 blocks, u64 magic, int bits)
   {
     return cast(int) ((blocks * magic) >> (64 - bits));
   }
@@ -224,15 +223,15 @@ private:
   {
     foreach (sq; SQ.A1 .. SQ.size) // Rooks
     {
-      ulong mask = get_mask!Rook(sq);
-      ulong magic = entries[Rook][sq].blackmagic;
+      u64 mask = get_mask!Rook(sq);
+      u64 magic = entries[Rook][sq].blackmagic;
       int bits = popcnt(mask);
 
       for (int i = 0; i < (1 << bits); i++)
       {
-        ulong blocks = index_to_u64(i, bits, mask);
+        u64 blocks = index_to_u64(i, bits, mask);
         int offset = transform(blocks, magic, 12);
-        ulong * ptr  = entries[Rook][sq].ptr;
+        u64 * ptr  = entries[Rook][sq].ptr;
 
         ptr[offset] = get_att!Rook(sq, blocks);
       }
@@ -243,15 +242,15 @@ private:
 
     foreach (sq; SQ.A1 .. SQ.size) // Bishops
     {
-      ulong mask = get_mask!Bishop(sq);
-      ulong magic = entries[Bishop][sq].blackmagic;
+      u64 mask = get_mask!Bishop(sq);
+      u64 magic = entries[Bishop][sq].blackmagic;
       int bits = popcnt(mask);
 
       for (int i = 0; i < (1 << bits); i++)
       {
-        ulong blocks = index_to_u64(i, bits, mask);
+        u64 blocks = index_to_u64(i, bits, mask);
         int offset = transform(blocks, magic, 9);
-        ulong * ptr  = entries[Bishop][sq].ptr;
+        u64 * ptr  = entries[Bishop][sq].ptr;
 
         ptr[offset] = get_att!Bishop(sq, blocks);
       }
@@ -283,25 +282,25 @@ private:
   }
 }
 
-ulong r_att(ulong occ, SQ sq)
+u64 r_att(u64 occ, SQ sq)
 {
-  ulong * ptr = Magics.entries[Rook][sq].ptr;
+  u64 * ptr = Magics.entries[Rook][sq].ptr;
   occ        |= Magics.entries[Rook][sq].notmask;
   occ        *= Magics.entries[Rook][sq].blackmagic;
   occ       >>= 64 - 12;
   return ptr[occ];
 }
 
-ulong b_att(ulong occ, SQ sq)
+u64 b_att(u64 occ, SQ sq)
 {
-  ulong * ptr = Magics.entries[Bishop][sq].ptr;
+  u64 * ptr = Magics.entries[Bishop][sq].ptr;
   occ        |= Magics.entries[Bishop][sq].notmask;
   occ        *= Magics.entries[Bishop][sq].blackmagic;
   occ       >>= 64 - 9;
   return ptr[occ];
 }
 
-ulong q_att(ulong occ, SQ sq)
+u64 q_att(u64 occ, SQ sq)
 {
   return r_att(occ, sq) | b_att(occ, sq);
 }
