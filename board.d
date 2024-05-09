@@ -22,6 +22,7 @@ class Board
     foreach (x; SQ.A1 .. SQ.size) square[x] = Piece.NOP;
     color = Color.White;
     ply = 0;
+    state = State();
   }
 
   Color to_move() const
@@ -149,6 +150,7 @@ class Board
       color = ch.to_color();
     }
 
+    state = State.init;
     state.castling = Castling.init;
     foreach (ch; parts[2]) // parsing castling
     {
@@ -208,13 +210,14 @@ class Board
 
   import std.stdio;
 
-  bool make(const Move move, Undo * undo, bool self = false)
+  bool make(const Move move, ref Undo * undo, bool self = false)
   {
     const SQ from = move.from;
     const SQ to = move.to;
     const MT mt = move.mt;
     const Piece p = square[from];
 
+    //writeln("state is ", state);
     undo.state = state;
     undo++;
     state.castling &= uncastle[from] & uncastle[to];
@@ -229,7 +232,7 @@ class Board
     //}
     
     state.cap = square[to];
-    state.ep = A1;
+    state.ep = SQ.None;
     state.fifty++;
 
     //writeln("castling = ", state.castling);
@@ -349,7 +352,7 @@ class Board
     return true;
   }
 
-  void unmake(const Move move, Undo * undo)
+  void unmake(const Move move, ref Undo * undo)
   {
     const SQ from = move.from;
     const SQ to = move.to;
@@ -614,5 +617,5 @@ private:
   u64[Piece.size] piece;
   u64[Color.size] occ;
   Piece[SQ.size] square;
-  State state;
+  State state = State();
 }

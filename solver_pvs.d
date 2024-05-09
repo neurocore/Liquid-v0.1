@@ -19,13 +19,19 @@ class SolverPVS : Solver
   override void stop() {}
   override void set_analysis(bool val) {}
 
-  void show_states()
+  void show_states(bool full = false)
   {
-    for (Undo * it = undos.ptr; it <= undo; it++)
+    debug
     {
-      writeln(it.state);
+      writeln("------ stack ------");
+      auto high = full ? undos.ptr + Limits.Plies - 1 : undo;
+      for (Undo * it = undos.ptr; it <= high; it++)
+      {
+        writeln(it - undos.ptr, " - ", it.state);
+      }
+      writeln("x - ", engine.board.get_state);
+      writeln("-------------------");
     }
-    writeln(engine.board.get_state);
   }
 
   override u64 perft(int depth)
@@ -34,6 +40,8 @@ class SolverPVS : Solver
 
     writeln("-- Perft ", depth);
     writeln(engine.board);
+
+    //show_states(true);
 
     Timer timer;
     timer.start();
@@ -53,7 +61,10 @@ class SolverPVS : Solver
       count += cnt;
 
       writeln(cnt);
+
+      //writeln("state was ", engine.board.get_state);
       engine.board.unmake(move, undo);
+      //writeln("state now ", engine.board.get_state);
     }
 
     i64 time = timer.getms();

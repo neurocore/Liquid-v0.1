@@ -1,7 +1,7 @@
 module main;
 
 import std.stdio;
-import square, piece, moves, consts, engine;
+import square, piece, moves, consts, engine, types;
 import protocol, bitboard, board, magics, tables;
 
 version(Windows)
@@ -23,16 +23,17 @@ void main()
   writeln(State.sizeof);
   writeln(uncastle[C4]);
   writeln(uncastle[C5]);
-  //ulong occ = Bit << E2;
-  //writeln(b_att(occ, A6).to_bitboard());
-  //ulong bb = 18428448475101265920u;
-  //writeln(bb.to_bitboard());
-  //writeln(bb.shift_dl.to_bitboard());
-  //writeln(bb.shift_dr.to_bitboard());
-  //writeln(Table.between(E4, E4).to_bitboard());
-  //writeln(Table.between(E4, C1).to_bitboard());
-  //writeln(Table.between(E4, E8).to_bitboard());
-  //writeln(q_att(Empty, D3).to_bitboard());
+
+  /*ulong occ = Bit << E2;
+  writeln(b_att(occ, A6).to_bitboard());
+  ulong bb = 18428448475101265920u;
+  writeln(bb.to_bitboard());
+  writeln(bb.shift_dl.to_bitboard());
+  writeln(bb.shift_dr.to_bitboard());
+  writeln(Table.between(E4, E4).to_bitboard());
+  writeln(Table.between(E4, C1).to_bitboard());
+  writeln(Table.between(E4, E8).to_bitboard());
+  writeln(q_att(Empty, D3).to_bitboard());*/
 
   auto engine = new Engine();
   engine.start();

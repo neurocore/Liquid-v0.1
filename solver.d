@@ -29,7 +29,7 @@ class Reader : Solver
 
 struct Undo // Alpha-beta-like node state
 {
-  State state;
+  State state = State.init;
   // Val pst;
   // u64 hash;
   Move curr, best;
