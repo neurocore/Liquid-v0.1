@@ -43,9 +43,27 @@ class Engine
     return !cmd.exit;
   }
 
+  void print_message(string message)
+  {
+    debug
+    {
+      writeln(message);
+    }
+    else
+    {
+      if (options.flag_debug)
+      {
+        writeln("info string ", message);
+        stdout.flush();
+      }
+    }
+  }
+
   void new_game()
   {
     B.set();
+    S[0].set(B);
+    S[1].set(B);
   }
 
   void stop()
@@ -71,9 +89,10 @@ class Engine
     B.set(fen);
   }
 
-  void do_move(Move move)
+  bool do_move(Move move)
   {
-
+    Undo * undo = undos.ptr;
+    return B.make(move, undo);
   }
 
   void go(const TimeControl tc)
@@ -97,4 +116,5 @@ private:
   Board B;
   Protocol P;
   Solver[2] S;
+  Undo[2] undos;
 }

@@ -9,13 +9,15 @@ class Solver
     this.engine = engine;
   }
   abstract Move get_move(MS time);
-  void set(const ref Board board) {}
+  void set(const Board board) {}
   u64 perft(int depth) { return 0; }
   void stop() {}
-  void set_analysis(bool val) {}
+  void set_analysis(bool val) { infinite = val; }
 
 protected:
   Engine engine = null;
+  bool thinking = false;
+  bool infinite = false;
 }
 
 class Reader : Solver

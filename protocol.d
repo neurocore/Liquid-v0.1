@@ -3,7 +3,7 @@ import std.stdio, std.format, std.array;
 import std.file, std.conv;
 import std.algorithm;
 import consts, utils, moves;
-import command, options;
+import command, options, timer;
 
 abstract class Protocol
 {
@@ -140,6 +140,16 @@ public:
 
       Move[] the_moves = moves.split(" ").map!(x => Move(x)).array;
       return new Cmd_Pos(fen, the_moves);
+    }
+    else if (cmd == "go")
+    {
+      bool infinite = parts.length > 1 && parts[1] == "infinite";
+      return new Cmd_Go(TimeControl
+      (
+        [Time.Default, Time.Default],
+        [Time.Inc, Time.Inc],
+        infinite
+      ));
     }
 
     return new Cmd_Bad(highlight(parts, 0));

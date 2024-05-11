@@ -10,9 +10,9 @@ struct Timer
 
   void start() { sw.start(); }
   void stop()  { sw.stop(); }
-  MS getms()
+  MS getms() const
   {
-    sw.stop();
+    //sw.stop();
     return sw.peek.total!"msecs";
   }
 }
@@ -32,7 +32,7 @@ struct TimeControl
   bool infinite() const { return infinite_; }
 
 private:
-  MS[2] time_= [Time.Default, Time.Default];
-  MS[2] inc_= [0, 0];
+  MS[2] time_ = [Time.Default, Time.Default];
+  MS[2] inc_ = [Time.Inc, Time.Inc];
   bool infinite_ = false;
 }

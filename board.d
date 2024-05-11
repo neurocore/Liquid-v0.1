@@ -1,6 +1,6 @@
 module board;
 import std.array, std.ascii, std.string, std.conv;
-import bitboard, square, consts;
+import bitboard, square, consts, eval;
 import movelist, types, piece, solver;
 import moves, utils, magics, tables;
 
@@ -21,8 +21,23 @@ class Board
     foreach (c; Color.Black .. Color.size) occ[c] = Empty;
     foreach (x; SQ.A1 .. SQ.size) square[x] = Piece.NOP;
     color = Color.White;
-    ply = 0;
     state = State();
+  }
+
+  Board dup() const
+  {
+    Board B = new Board;
+    foreach (p; Piece.BP .. Piece.size) B.piece[p] = piece[p];
+    foreach (c; Color.Black .. Color.size) B.occ[c] = occ[c];
+    foreach (x; SQ.A1 .. SQ.size) B.square[x] = square[x];
+    B.color = color;
+    B.state = state;
+    return B;
+  }
+
+  int eval(Eval E) const
+  {
+    return E.eval(this);
   }
 
   Color to_move() const
@@ -68,7 +83,7 @@ class Board
     return false;
   }
 
-  bool in_check(int opposite) const
+  bool in_check(int opposite = 0) const
   {
     Piece p = to_piece(King, cast(Color)(color ^ opposite));
     SQ king = bitscan(piece[p]);
@@ -93,13 +108,6 @@ class Board
   void remove(bool full = false)(SQ sq)
   {
     Piece p = square[sq];
-    //if (p >= Piece.size)
-    //{
-    //  import std.stdio;
-    //  writeln(this);
-    //  writeln(sq);
-    //  writeln(p);
-    //}
     assert(p < Piece.size);
 
     piece[p]     ^= (Bit << sq);
@@ -208,34 +216,20 @@ class Board
   Piece get_piece(SQ sq) const { return square[sq]; }
   Piece get_piece(Move move) const { return square[move.from]; }
 
-  import std.stdio;
-
-  bool make(const Move move, ref Undo * undo, bool self = false)
+  bool make(const Move move, ref Undo * undo)
   {
     const SQ from = move.from;
     const SQ to = move.to;
     const MT mt = move.mt;
     const Piece p = square[from];
 
-    //writeln("state is ", state);
     undo.state = state;
     undo++;
-    state.castling &= uncastle[from] & uncastle[to];
 
-    //if ((undo - 1).state.castling != Castling.init
-    //&&  state.castling == Castling.init)
-    //{
-    //  writeln((undo - 1).state.castling);
-    //  writeln(state.castling);
-    //  writeln(from, " - ", to);
-    //  assert(false);
-    //}
-    
+    state.castling &= uncastle[from] & uncastle[to];    
     state.cap = square[to];
     state.ep = SQ.None;
     state.fifty++;
-
-    //writeln("castling = ", state.castling);
 
     switch (mt)
     {
@@ -328,25 +322,25 @@ class Board
       return false;
     }
 
-    //switch (mt)
-    //{
-    //  case MT.KCastle:
-    //  case MT.QCastle:
-    //  {
-    //    const u64 o = occ[0] | occ[1];
-    //    const SQ mid = cast(SQ)((from + to) / 2);
+    switch (mt)
+    {
+      case MT.KCastle:
+      case MT.QCastle:
+      {
+        const u64 o = occ[0] | occ[1];
+        const SQ mid = cast(SQ)((from + to) / 2);
 
-    //    if (is_attacked(from, o)
-    //    ||  is_attacked(mid, o)
-    //    ||  is_attacked(to, o))
-    //    {
-    //      unmake(move, undo);
-    //      return false;
-    //    }
-    //    break;
-    //  }
-    //  default: break;
-    //}
+        if (is_attacked(from, o)
+        ||  is_attacked(mid, o)
+        ||  is_attacked(to, o))
+        {
+          unmake(move, undo);
+          return false;
+        }
+        break;
+      }
+      default: break;
+    }
 
     undo.curr = move;
     return true;
@@ -496,8 +490,6 @@ class Board
     gen!(PieceType.Queen,  captures)(ml);
     gen!(PieceType.King,   captures)(ml);
 
-    //writeln(ml);
-
     static if (!captures) // Castlings
     {
       if (color)
@@ -521,8 +513,6 @@ class Board
     Piece p = to_piece(Pawn, color);
     if (color)
     {
-      // TODO: apply static if on captures and quiets
-
       static if (!captures) // Forward & promotion
       {
         for (u64 bb = piece[p] & shift_d(~o); bb; bb = rlsb(bb))
@@ -611,8 +601,7 @@ class Board
     }
   }
 
-private:
-  int ply = 0;
+public:
   Color color = Color.White;
   u64[Piece.size] piece;
   u64[Color.size] occ;

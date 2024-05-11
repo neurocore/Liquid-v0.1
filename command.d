@@ -27,18 +27,7 @@ class Cmd_Bad : Cmd
     string err = format("%s", bad) ~ " command \"%s\"";
     string answer = format(err, str);
 
-    debug
-    {
-      writeln(answer);
-    }
-    else
-    {
-      if (E.options.flag_debug)
-      {
-        writeln("info string ", answer);
-        stdout.flush();
-      }
-    }
+    E.print_message(answer);
   }
 }
 
@@ -127,7 +116,13 @@ class Cmd_Pos : Cmd
   {
     E.set_pos(fen);
     foreach (move; moves)
-      E.do_move(move);
+    {
+      if (!E.do_move(move))
+      {
+        E.print_message(format("can't perform move \"%s\"", move));
+        break;
+      }
+    }
 
     writeln(E.board);
   }
