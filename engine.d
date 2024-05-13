@@ -107,11 +107,6 @@ class Engine
     }
   }
 
-  void quit()
-  {
-    // No action
-  }
-
 private:
   Board B;
   Protocol P;

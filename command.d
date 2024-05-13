@@ -146,6 +146,5 @@ class Cmd_Quit : Cmd
   override void execute(Engine E)
   {
     debug writeln("Good to see you again");
-    E.quit();
   }
 }

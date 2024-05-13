@@ -13,7 +13,7 @@ public:
   Cmd parse(string line, Options options);
 }
 
-class WordsReader
+private class WordsReader
 {
   this(string[] words)
   {
@@ -37,6 +37,15 @@ class WordsReader
     }
     pos += phrase.length;
     return phrase.join(" ");
+  }
+
+  void print()
+  {
+    debug
+    {
+      writeln("pos: ", pos);
+      writeln("words: ", words);
+    }
   }
 
 private:
@@ -101,6 +110,10 @@ public:
       else if (op == "off") return new Cmd_Debug(false);
       return new Cmd_Bad(highlight(parts, 1), Bad.Invalid);
     }
+    else if (cmd == "register")
+    {
+      return new Cmd_Response("registration ok");
+    }
     else if (cmd == "setoption")
     {
       if (parts.length < 3) return new Cmd_Bad(parts[0] ~ " [name <string>]", Bad.Incomplete);
@@ -124,14 +137,15 @@ public:
       if (op == "startpos")
       {
         fen = Pos.Init;
+        auto _ = reader.get_phrase(["moves"]);
       }
       else if (op == "fen")
       {
         if (parts.length < 3) return new Cmd_Bad(parts[0] ~ " fen <string>", Bad.Incomplete);
         fen = reader.get_phrase(["moves"]);
-        op = reader.get_word();
       }
 
+      op = reader.get_word();
       if (op == "moves")
       {
         if (parts.length < 3) return new Cmd_Bad(parts[0] ~ " moves <string>", Bad.Incomplete);

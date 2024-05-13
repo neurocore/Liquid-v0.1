@@ -16,7 +16,7 @@ class SolverPVS : Solver
   }
 
   override void set(const Board board) { B = board.dup(); }
-  override void stop() {}
+  //override void stop() {}
 
   int ply() const @property { return cast(int)(undo - undos.ptr); }
 

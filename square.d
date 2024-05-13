@@ -26,8 +26,8 @@ string toString(SQ sq)
 SQ toSQ(string str)
 {
   if (str.length < 2) return SQ.None;
-  int rank = str[0] - 'a';
-  int file = str[1] - '1';
+  int file = str[0] - 'a';
+  int rank = str[1] - '1';
   return to_sq(file, rank);
 }
 

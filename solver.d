@@ -11,7 +11,7 @@ class Solver
   abstract Move get_move(MS time);
   void set(const Board board) {}
   u64 perft(int depth) { return 0; }
-  void stop() {}
+  void stop() { thinking = false; }
   void set_analysis(bool val) { infinite = val; }
 
 protected:
