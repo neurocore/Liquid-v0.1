@@ -1,11 +1,32 @@
 module command;
 import std.stdio, std.format;
 import engine, moves, timer;
+import piece, consts;
 
 abstract class Cmd
 {
   bool exit = false;
   void execute(Engine E);
+}
+
+struct SearchParams
+{
+  MS get_time(Color c) const { return time[c]; }
+  MS get_inc(Color c) const { return inc[c]; }
+  MS full_time(Color c) const { return time[c] + inc[c]; }
+
+  MS[2] time = [Time.Def, Time.Def];
+  MS[2] inc = [Time.Inc, Time.Inc];
+  bool infinite = false;
+
+  // not supported by engine
+  Move[] searchmoves = [];
+  bool ponder = false;
+  int movestogo = Val.Inf;
+  int depth = Val.Inf;
+  int nodes = Val.Inf;
+  int mate = Val.Inf;
+  MS movetime = MS.max;
 }
 
 
@@ -130,12 +151,12 @@ class Cmd_Pos : Cmd
 
 class Cmd_Go : Cmd
 {
-  private TimeControl tc;
-  this(TimeControl tc) { this.tc = tc; }
+  private SearchParams sp;
+  this(SearchParams sp) { this.sp = sp; }
 
   override void execute(Engine E)
   {
-    E.go(tc);
+    E.go(sp);
   }
 }
 

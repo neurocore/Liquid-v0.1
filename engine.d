@@ -95,14 +95,14 @@ class Engine
     return B.make(move, undo);
   }
 
-  void go(const TimeControl tc)
+  void go(const SearchParams sp)
   {
-    MS time = tc.full_time(B.to_move);
+    MS time = sp.full_time(B.to_move);
 
     foreach (solver; S)
     {
       solver.set(B);
-      solver.set_analysis(tc.infinite);
+      solver.set_analysis(sp.infinite);
       solver.get_move(time);
     }
   }

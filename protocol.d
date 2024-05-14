@@ -157,13 +157,39 @@ public:
     }
     else if (cmd == "go")
     {
-      bool infinite = parts.length > 1 && parts[1] == "infinite";
-      return new Cmd_Go(TimeControl
-      (
-        [Time.Default, Time.Default],
-        [Time.Inc, Time.Inc],
-        infinite
-      ));
+      SearchParams sp;
+
+      string op;
+      while((op = reader.get_word()) != "")
+      {
+        switch(op)
+        {
+          case "wtime": sp.time[1] = reader.get_word().safe_to!int(Time.Def); break;
+          case "btime": sp.time[0] = reader.get_word().safe_to!int(Time.Def); break;
+          case "winc": sp.inc[1] = reader.get_word().safe_to!int(Time.Inc); break;
+          case "binc": sp.inc[0] = reader.get_word().safe_to!int(Time.Inc); break;
+          case "infinite": sp.infinite = true; break;
+
+          case "ponder": sp.ponder = true; break;
+          case "depth": sp.depth = reader.get_word().safe_to!int(Val.Inf); break;
+          case "nodes": sp.nodes = reader.get_word().safe_to!int(Val.Inf); break;
+          case "mate": sp.mate = reader.get_word().safe_to!int(Val.Inf); break;
+          case "movetime": sp.movetime = reader.get_word().safe_to!MS(MS.max); break;
+          case "searchmoves":
+          {
+            string moves = reader.get_phrase();
+            sp.searchmoves = moves.split(" ").map!(x => Move(x)).array;
+            break;
+          }
+          default: break;
+        }
+      }
+
+      return new Cmd_Go(sp);
+    }
+    else if (cmd == "ponderhit")
+    {
+      // do nothing
     }
 
     return new Cmd_Bad(highlight(parts, 0));

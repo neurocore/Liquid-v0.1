@@ -6,8 +6,8 @@ const string Auth = "Nick Kurgin";
 
 struct Time
 {
-  enum Default = 60000;
-  enum Inc     =  1000;
+  enum Def = 60000;
+  enum Inc =  1000;
 }
 
 struct Limits
