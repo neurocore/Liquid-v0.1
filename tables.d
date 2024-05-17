@@ -107,7 +107,7 @@ final class Table
   }
 
 static:
-  u64 moves(Piece piece, SQ sq)    { return att_[piece][sq]; }
+  u64 atts(Piece piece, SQ sq)     { return att_[piece][sq]; }
   int direction(SQ i, SQ j)        { return dir_[i][j]; }
   u64 between(SQ i, SQ j)          { return between_[i][j]; }
   u64 front_one(Color color, SQ j) { return front_one_[color][j]; }

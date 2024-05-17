@@ -1,5 +1,6 @@
 module board;
-import std.array, std.ascii, std.string, std.conv;
+import std.array, std.ascii, std.string;
+import std.math.algebraic, std.conv;
 import bitboard, square, consts, eval;
 import movelist, types, piece, solver;
 import moves, utils, magics, tables;
@@ -73,9 +74,9 @@ class Board
   bool is_attacked(SQ king, u64 occupied) const
   {
     Color col = color;
-    if (Table.moves(cast(Piece)(WN ^ col), king) & piece[BN ^ col]) return true; // Knights
-    if (Table.moves(cast(Piece)(WP ^ col), king) & piece[BP ^ col]) return true; // Pawns
-    if (Table.moves(cast(Piece)(WK ^ col), king) & piece[BK ^ col]) return true; // King
+    if (Table.atts(cast(Piece)(WN ^ col), king) & piece[BN ^ col]) return true; // Knights
+    if (Table.atts(cast(Piece)(WP ^ col), king) & piece[BP ^ col]) return true; // Pawns
+    if (Table.atts(cast(Piece)(WK ^ col), king) & piece[BK ^ col]) return true; // King
 
     if (b_att(occupied, king) & (piece[BB ^ col] | piece[BQ ^ col])) return true; // Bishops & queens
     if (r_att(occupied, king) & (piece[BR ^ col] | piece[BQ ^ col])) return true; // Rooks & queens
@@ -215,6 +216,60 @@ class Board
 
   Piece get_piece(SQ sq) const { return square[sq]; }
   Piece get_piece(Move move) const { return square[move.from]; }
+
+  import std.stdio;
+
+  Move recognize(Move move)
+  {
+    const SQ from = move.from;
+    const SQ to = move.to;
+    const Piece p = square[from];
+    const Piece cap = square[to];
+
+    if (p == Piece.NOP) return Move.None;
+    if (p.color() != color) return Move.None;
+    if (cap.color() == color) return Move.None;
+
+    MT mt = move.mt;
+
+    if (cap != Piece.NOP) // capture
+    {
+      if (p.pt() == Pawn && to == state.ep) mt = MT.Ep; // ep
+      else mt = cast(MT) (mt + MT.Cap); // cap || capprom
+    }
+    else
+    {
+      if (p.pt() == Pawn && abs(from - to) == 16) mt = MT.Pawn2; // p2
+      else if (p.pt() == King)
+      {
+        if (color == White) // castlings
+        {
+          if (from == E1)
+          {
+            if (to == G1 && state.castling.has_wk()) mt = MT.KCastle;
+            if (to == C1 && state.castling.has_wq()) mt = MT.QCastle;
+          }
+        }
+        else
+        {
+          if (from == E8)
+          {
+            if (to == G8 && state.castling.has_bk()) mt = MT.KCastle;
+            if (to == C8 && state.castling.has_bq()) mt = MT.QCastle;
+          }
+        }
+      }
+    }
+
+    // pseudolegality test (can be disabled if you trust GUI)
+    if (abs(from - to) != 8 && !mt.is_pawn2() && !mt.is_castle())
+    {
+      u64 att = attack(p, from) && (Bit << to);
+      if (!att) return Move.None;
+    }
+
+    return Move(from, to, mt);
+  }
 
   bool make(const Move move, ref Undo * undo)
   {
@@ -447,19 +502,17 @@ class Board
     else if (pt == Rook)   return r_att(occ[0] | occ[1], sq);
     else if (pt == Queen)  return q_att(occ[0] | occ[1], sq);
 
-    return Table.moves(to_piece(pt, Black), sq);
+    return Table.atts(to_piece(pt, Black), sq);
   }
 
   u64 attack(Piece p, SQ sq) const
   {
     switch (p)
     {
-      case BN: case WN: return attack!Knight(sq);
       case BB: case WB: return attack!Bishop(sq);
       case BR: case WR: return attack!Rook(sq);
       case BQ: case WQ: return attack!Queen(sq);
-      case BK: case WK: return attack!King(sq);
-      default: return Empty;
+      default: return Table.atts(p, sq);
     }
   }
 
@@ -550,7 +603,7 @@ class Board
       static if (captures)
       if (state.ep)
       {
-        for (u64 bb = piece[p] & Table.moves(to_piece(Pawn, color.opp), state.ep); bb; bb = rlsb(bb))
+        for (u64 bb = piece[p] & Table.atts(to_piece(Pawn, color.opp), state.ep); bb; bb = rlsb(bb))
         {
           ml.add_move(bitscan(bb), state.ep, MT.Ep);
         }
@@ -593,7 +646,7 @@ class Board
       static if (captures)
       if (state.ep)
       {
-        for (u64 bb = piece[p] & Table.moves(to_piece(Pawn, color.opp), state.ep); bb; bb = rlsb(bb))
+        for (u64 bb = piece[p] & Table.atts(to_piece(Pawn, color.opp), state.ep); bb; bb = rlsb(bb))
         {
           ml.add_move(bitscan(bb), state.ep, MT.Ep);
         }

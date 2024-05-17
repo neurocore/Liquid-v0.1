@@ -33,7 +33,7 @@ class MoveListGen(bool simple = false)
 
   ref Move front()
   {
-    if (simple) return first.move;
+    static if (simple) return first.move;
 
     curr = first;
     for (MoveVal * ptr = first + 1; ptr != last; ++ptr)
@@ -45,7 +45,7 @@ class MoveListGen(bool simple = false)
 
   void popFront()
   {
-    if (simple)
+    static if (simple)
     {
       first++;
     }
@@ -108,7 +108,6 @@ private:
   Move hashmove;
   MoveVal[Limits.Moves] moves;
   MoveVal * first, last, curr;
-  bool simple = false;
   int lower_bound = -int.max; // TODO: not implemented
 
   void remove(MoveVal * ptr)

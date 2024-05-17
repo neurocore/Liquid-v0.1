@@ -126,13 +126,15 @@ class SolverPVS : Solver
       if (depth > max_ply) max_ply = depth;
 
       best = undos[0].best;
-      string fmt = "info depth %d seldepth %d score %d nodes %d time %d pv %s";
+      string fmt = "info depth %d seldepth %d score cp %d nodes %d time %d pv %s";
       format(fmt, depth, max_ply, val, nodes, timer.getms(), best).writeln;
+      stdout.flush();
 
       if (val > Val.Mate || val < -Val.Mate) break;
     }
 
     format("bestmove %s", best).writeln;
+    stdout.flush();
 
     thinking = false;
     return best;

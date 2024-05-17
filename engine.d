@@ -89,9 +89,13 @@ class Engine
     B.set(fen);
   }
 
-  bool do_move(Move move)
+  bool do_move(Move mv)
   {
     Undo * undo = undos.ptr;
+    Move move = B.recognize(mv);
+    //writeln("MT = ", move.mt);
+    //writeln(mv, " -> ", move);
+    if (move == Move.None) return false;
     return B.make(move, undo);
   }
 

@@ -44,9 +44,11 @@ struct Move // newtype paradigm
     if (str.length < 4) move = None;
     else
     {
+      str ~= " ";
       SQ from = str[0..2].toSQ();
       SQ to   = str[2..4].toSQ();
-      move = Move(from, to);
+      MT mt   = str[4].parse_promotee();
+      move = Move(from, to, mt);
     }
   }
 
@@ -122,6 +124,11 @@ enum Castling : u8
   ALL = BK | BQ | WK | WQ
 }
 
+bool has_wk(Castling castling) { return cast(bool) (castling & Castling.WK); }
+bool has_wq(Castling castling) { return cast(bool) (castling & Castling.WQ); }
+bool has_bk(Castling castling) { return cast(bool) (castling & Castling.BK); }
+bool has_bq(Castling castling) { return cast(bool) (castling & Castling.BQ); }
+
 enum Span
 {
   BK = [F8, G8].bits(),
@@ -135,6 +142,13 @@ Castling to_castling(const char c)
   size_t i = indexOf("kKqQ", c);
   if (i < 0 || i > 3) return Castling.init;
   return cast(Castling) (1 << i);
+}
+
+MT parse_promotee(const char c)
+{
+  size_t i = indexOf("nbrq", c);
+  if (i < 0 || i > 3) return MT.Quiet;
+  return cast(MT) (MT.NProm + i);
 }
 
 string to_string(Castling castling, string fill = "")

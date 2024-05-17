@@ -69,7 +69,7 @@ char to_char(const Piece p)
 
 Color color(const Piece p)
 {
-  return p == Piece.NOP
+  return p >= Piece.size
        ? Color.None
        : cast(Color) (p & 1);
 }
