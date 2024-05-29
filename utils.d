@@ -97,8 +97,8 @@ template parse_san(string scheme)
     auto the_match = match(str, rx);
     if (!the_match) return data;
 
-    debug writeln("scheme = ", scheme);
-    debug writeln("regex = ", rx);
+    //debug writeln("scheme = ", scheme);
+    //debug writeln("regex = ", rx);
 
     auto captures = the_match.captures;
     captures.popFront();
