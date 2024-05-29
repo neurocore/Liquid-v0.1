@@ -264,11 +264,155 @@ class Board
     // pseudolegality test (can be disabled if you trust GUI)
     if (abs(from - to) != 8 && !mt.is_pawn2() && !mt.is_castle())
     {
-      u64 att = attack(p, from) && (Bit << to);
+      u64 att = attack(p, from) & (Bit << to);
       if (!att) return Move.None;
     }
 
     return Move(from, to, mt);
+  }
+
+  Move san(string str)
+  {
+    writeln();
+    writeln(str);
+
+    // Castlings
+
+    if (str == "O-O")
+      return color == White
+           ? Move(E1, G1, MT.KCastle)
+           : Move(E8, G8, MT.KCastle);
+
+    if (str == "O-O-O")
+      return color == White
+           ? Move(E1, C1, MT.QCastle)
+           : Move(E8, C8, MT.QCastle);
+
+    // Other cases
+
+    int file = -1, rank = -1;
+    Piece p = Piece.NOP;
+    SQ from = SQ.None;
+    SQ to = SQ.None;
+    MT mt = MT.Quiet;
+    u64 to_mask = Full;
+
+    if (auto data = parse_san!"Nxa1"(str)) // usual piece move
+    {
+      auto pt = cast(PieceType)(data[0]);
+      p = to_piece(pt, color);
+      to = to_sq(data[1], data[2]);
+    }
+    else if (auto data = parse_san!"a1=Q"(str)) // pawn move
+    {
+      p = to_piece(Pawn, color);
+      to = to_sq(data[0], data[1]);
+
+      if (color == White)
+      {
+        if (square[to - 8] == p)
+        {
+          from = to.sub(8);
+          if (to.rank == 7)
+            mt = cast(MT)(MT.NProm + data[2] - 1);
+        }
+        else if (to.rank == 3 && square[to - 16] == p)
+        {
+          from = to.sub(16);
+          mt = MT.Pawn2;
+        }
+      }
+      else
+      {
+        if (square[to + 8] == p)
+        {
+          from = to.add(8);
+          if (to.rank == 0)
+            mt = cast(MT)(MT.NProm + data[2] - 1);
+        }
+        else if (to.rank == 4 && square[to + 16] == p)
+        {
+          from = to.add(16);
+          mt = MT.Pawn2;
+        }
+      }
+    }
+    else if (auto data = parse_san!"axa=Q"(str)) // pawn capture
+    {
+      p = to_piece(Pawn, color);
+      file = data[0];
+      to_mask &= file_bb[data[1]];
+      if (data[2] > 0) mt = cast(MT)(MT.NProm + data[2] - 1);
+    }
+    else if (auto data = parse_san!"Naxa1"(str)) // ambiguous file
+    {
+      auto pt = cast(PieceType)(data[0]);
+      p = to_piece(pt, color);
+      file = data[1];
+      to = to_sq(data[2], data[3]);
+    }
+    else if (auto data = parse_san!"N1xa1"(str)) // ambiguous rank
+    {
+      auto pt = cast(PieceType)(data[0]);
+      p = to_piece(pt, color);
+      rank = data[1];
+      to = to_sq(data[2], data[3]);
+    }
+    else if (auto data = parse_san!"axa1=Q"(str)) // rare, but possible
+    {
+      p = to_piece(Pawn, color);
+      file = data[0];
+      to &= to_sq(data[1], data[2]);
+      if (data[3] > 0) mt = cast(MT)(MT.NProm + data[3] - 1);
+    }
+    else if (auto data = parse_san!"Na1xa1"(str)) // extremely rare
+    {
+      auto pt = cast(PieceType)(data[0]);
+      p = to_piece(pt, color);
+      from = to_sq(data[1], data[2]);
+      to = to_sq(data[3], data[4]);
+    }
+    else return Move.None;
+
+    to_mask = to == SQ.None ? to_mask : Bit << to;
+
+    // Looking for 'from' square
+
+    if (from == SQ.None)
+    {
+      u64 mask = Full;
+      if (file >= 0) mask &= file_bb[file];
+      if (rank >= 0) mask &= rank_bb[rank];
+
+      //debug writeln(piece[p].to_bitboard);
+      //debug writeln(mask.to_bitboard);
+      //debug writeln((piece[p] & mask).to_bitboard);
+
+      for (u64 bb = piece[p] & mask; bb; bb = rlsb(bb))
+      {
+        SQ j = bitscan(bb);
+        if (abs(j - to) != 8 || p.pt != Pawn)
+        {
+          u64 att = attack(p, j) & to_mask;
+          //debug writeln(att.to_bitboard);
+          if (att)
+          {
+            from = j;
+            break;
+          }
+        }
+      }
+    }
+
+    if (from == SQ.None) return Move.None;
+
+    // Adding move type info
+
+    if (to == state.ep && p.pt == Pawn) mt = MT.Ep;
+
+    return Move(from, to, mt);
+
+    //return None;
   }
 
   bool make(const Move move, ref Undo * undo)
