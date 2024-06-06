@@ -16,6 +16,9 @@ void main()
     writeln("---");
     writeln("R1xa3+! -> ", B.san("R1xa3+!"));
     writeln("Qh4e1# -> ", B.san("Qh4e1#"));
+
+    import utils;
+    writeln(cast(int)Order.WinCap);
   }
 
   //writeln(State.sizeof);

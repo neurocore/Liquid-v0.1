@@ -11,6 +11,8 @@ class SolverPVS : Solver
   this(Engine engine)
   {
     super(engine);
+    for (int i = 0; i < Limits.Plies; i++)
+      undos[i].ml = new MoveList;
     undo = undos.ptr;
     B = new Board;
     E = new EvalSimple;
@@ -59,7 +61,8 @@ class SolverPVS : Solver
     //show_states(true);
 
     timer.start();
-    auto ml = new MoveListSimple;
+    auto ml = undo.ml;
+    ml.clear();
     B.generate!0(ml);
     B.generate!1(ml);
 
@@ -93,7 +96,8 @@ class SolverPVS : Solver
   {
     if (depth <= 0) return 1;
 
-    auto ml = new MoveListSimple;
+    auto ml = undo.ml;
+    ml.clear();
     B.generate!0(ml);
     B.generate!1(ml);
 
@@ -172,9 +176,11 @@ class SolverPVS : Solver
 
     // Looking all legal moves
 
-    auto ml = new MoveListSimple;
+    auto ml = undo.ml;
+    ml.clear();
     B.generate!0(ml);
     B.generate!1(ml);
+    ml.value_moves(B, undo);
 
     foreach (Move move; ml)
     {

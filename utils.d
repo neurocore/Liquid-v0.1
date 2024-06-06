@@ -168,3 +168,8 @@ void zeros(T)(ref T obj)
 {
   obj.each!"a = 0"; // no alloc
 }
+
+R compare(T, R)(T a, T b, R less, R equal, R more)
+{
+  return (a < b ? less : (a > b ? more : equal));
+}

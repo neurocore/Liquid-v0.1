@@ -1,6 +1,6 @@
 module solver;
 import types, timer, piece, board;
-import moves, consts, engine;
+import moves, movelist, consts, engine;
 
 class Solver
 {
@@ -32,6 +32,7 @@ class Reader : Solver
 struct Undo // Alpha-beta-like node state
 {
   State state = State.init;
+  MoveList ml;
   // Val pst;
   // u64 hash;
   Move curr, best;

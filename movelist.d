@@ -1,7 +1,7 @@
 module movelist;
 import consts, square, moves;
-
-alias Valuator = int function(Move);
+import piece, board, solver;
+import utils;
 
 struct MoveVal
 {
@@ -9,11 +9,14 @@ struct MoveVal
   int val;
 }
 
+// Iterable (in for) move list
+
 class MoveListGen(bool simple = false)
 {
   this(Move hashmove = Move())
   {
     this.hashmove = hashmove;
+    this.moves = new MoveVal[Limits.Moves];
     clear();
   }
 
@@ -85,11 +88,41 @@ class MoveListGen(bool simple = false)
     add(Move(from, to, MT.NCapProm));
   }
 
-  void value_moves(Valuator valuator)
+  // r1bk2nQ/pppn3p/5p2/3q4/8/2B2N1P/PP3PP1/3RR1K1 b - - 1 23
+
+  void value_moves(bool qs = false)(Board board, const Undo * undo)
   {
+    //const int[] val  = [100, 100, 300, 300, 350, 350, 500, 500, 900, 900, 20000, 20000, 0, 0];
+    const int[] cost = [1, 1, 3, 3, 3, 3, 5, 5, 9, 9, 200, 200, 0, 0];
+    const int[] prom = [0, cost[WN], cost[WB], cost[WR], cost[WQ], 0];
+
     for (MoveVal * ptr = first; ptr != last; ptr++)
     {
-      ptr.val = valuator(ptr.move);
+      if (ptr.move == hashmove)       { ptr.val = Order.Hash;    continue; }
+      if (ptr.move == undo.killer[0]) { ptr.val = Order.Killer1; continue; }
+      if (ptr.move == undo.killer[1]) { ptr.val = Order.Killer2; continue; }
+
+      const SQ from = ptr.move.from;
+      const SQ to   = ptr.move.to;
+      const MT mt   = ptr.move.mt;
+
+      int a = cost[board[from]]; // attack
+      int v = cost[board[to]];  // victim
+
+      if (mt.is_prom)
+      {
+        int p = prom[mt.promoted];
+        ptr.val = Order.WinCap + 100 * (p + v) - a;
+      }
+      else if (mt.is_ep)
+      {
+        ptr.val = Order.EqCap;
+      }
+      else if (mt.is_cap)
+      {
+        int order = compare(v, a, Order.BadCap, Order.EqCap, Order.WinCap);
+        ptr.val = order + 100 * v - a; // MVV-LVA
+      }
     }
   }
 
@@ -106,7 +139,7 @@ class MoveListGen(bool simple = false)
 
 private:
   Move hashmove;
-  MoveVal[Limits.Moves] moves;
+  MoveVal[] moves;
   MoveVal * first, last, curr;
   int lower_bound = -int.max; // TODO: not implemented
 
