@@ -1,5 +1,6 @@
 module solver_pvs;
 import std.stdio, std.format;
+import std.algorithm: min, max;
 import types, solver, movelist;
 import timer, board, moves, gen;
 import consts, engine, piece;
@@ -127,7 +128,7 @@ class SolverPVS : Solver
 
       best = undos[0].best;
       string fmt = "info depth %d seldepth %d score cp %d nodes %d time %d pv %s";
-      format(fmt, depth, max_ply, val, nodes, timer.getms(), best).writeln;
+      writefln(fmt, depth, max_ply, val, nodes, timer.getms(), best);
       stdout.flush();
 
       if (val > Val.Mate || val < -Val.Mate) break;
@@ -148,12 +149,20 @@ class SolverPVS : Solver
 
     const bool in_pv = (beta - alpha) > 1;
     HashType hash_type = HashType.Alpha;
-    bool search_pv = true;
     undo.best = Move.None;
-    int val = -Val.Inf;
+    int val = ply - Val.Inf;
     nodes++;
 
     int legal = 0;
+
+    // 0. Mate pruning
+
+    //if (ply > 0)
+    //{
+    //  alpha = max(-Val.Inf + ply, alpha);
+    //  beta = min(Val.Inf - (ply + 1), beta);
+    //  if (alpha >= beta) return alpha;
+    //}
 
     // 1. Retrieving hash move
 
@@ -175,17 +184,17 @@ class SolverPVS : Solver
       int new_depth = depth - 1;
       bool reduced = false;
 
-      if (search_pv)
+      if (legal == 1)
         val = -pvs(-beta, -alpha, new_depth);
       else
       {
         val = -pvs(-alpha - 1, -alpha, new_depth);
         if (val > alpha && val < beta)
-            val = -pvs(-beta, -alpha, new_depth);
+          val = -pvs(-beta, -alpha, new_depth);
       }
 
       if (reduced && val >= beta)
-          val = -pvs(-beta, -alpha, new_depth + 1);
+        val = -pvs(-beta, -alpha, new_depth + 1);
 
       B.unmake(move, undo);
 
@@ -194,7 +203,6 @@ class SolverPVS : Solver
         alpha = val;
         hash_type = HashType.Exact;
         undo.best = move;
-        search_pv = false;
 
         if (val >= beta)
         {
@@ -212,7 +220,7 @@ class SolverPVS : Solver
     if (!legal)
     {
       int in_check = B.in_check();
-      return in_check > 0 ? -Val.Inf + ply : 0; // contempt();
+      return in_check > 0 ? val : 0; // contempt();
     }
 
     //H->set(B->hash(), B->best(), alpha, hash_type, depth, ply;

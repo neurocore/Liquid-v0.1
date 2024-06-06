@@ -168,7 +168,7 @@ class OptionString : Option
 
 class Options
 {
-  bool flag_debug = false;
+  bool flag_debug = true;
   private Option[string] options;
   private string[] order;
 

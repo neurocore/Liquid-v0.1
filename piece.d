@@ -88,3 +88,8 @@ Piece opp(const Piece p)
 {
   return cast(Piece) (p ^ 1);
 }
+
+Piece apply(const Piece p, const Color c)
+{
+  return cast(Piece) (p ^ (cast(int)c));
+}

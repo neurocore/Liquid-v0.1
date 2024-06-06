@@ -61,34 +61,25 @@ class Board
     return state;
   }
 
-  //Piece bb(char piece)(Color color)
-  //{
-  //  return mixin("piece " ~ op ~ " rhs");
-  //}
-
-  //Piece pie()
-  //{
-  //  return;
-  //}
-
-  bool is_attacked(SQ king, u64 occupied) const
+  bool is_attacked(SQ king, u64 o, int opp = 0) const
   {
-    Color col = color;
-    if (Table.atts(cast(Piece)(WN ^ col), king) & piece[BN ^ col]) return true; // Knights
-    if (Table.atts(cast(Piece)(WP ^ col), king) & piece[BP ^ col]) return true; // Pawns
-    if (Table.atts(cast(Piece)(WK ^ col), king) & piece[BK ^ col]) return true; // King
+    const Color c = cast(Color)(color ^ opp);
 
-    if (b_att(occupied, king) & (piece[BB ^ col] | piece[BQ ^ col])) return true; // Bishops & queens
-    if (r_att(occupied, king) & (piece[BR ^ col] | piece[BQ ^ col])) return true; // Rooks & queens
+    if (Table.atts(BN.apply(c), king) & piece[WN ^ c]) return true; // Knights
+    if (Table.atts(BP.apply(c), king) & piece[WP ^ c]) return true; // Pawns
+    if (Table.atts(BK.apply(c), king) & piece[WK ^ c]) return true; // King
+
+    if (b_att(o, king) & (piece[WB ^ c] | piece[WQ ^ c])) return true; // Bishops & queens
+    if (r_att(o, king) & (piece[WR ^ c] | piece[WQ ^ c])) return true; // Rooks & queens
 
     return false;
   }
 
-  bool in_check(int opposite = 0) const
+  bool in_check(int opp = 0) const
   {
-    Piece p = to_piece(King, cast(Color)(color ^ opposite));
+    Piece p = to_piece(King, cast(Color)(color ^ opp));
     SQ king = bitscan(piece[p]);
-    return is_attacked(king, occ[0] | occ[1]);
+    return is_attacked(king, occ[0] | occ[1], opp);
   }
 
   void place(bool full = false)(SQ sq, Piece p)
@@ -503,9 +494,9 @@ class Board
         const u64 o = occ[0] | occ[1];
         const SQ mid = cast(SQ)((from + to) / 2);
 
-        if (is_attacked(from, o)
-        ||  is_attacked(mid, o)
-        ||  is_attacked(to, o))
+        if (is_attacked(from, o, 1)
+        ||  is_attacked(mid, o, 1)
+        ||  is_attacked(to, o, 1))
         {
           unmake(move, undo);
           return false;
