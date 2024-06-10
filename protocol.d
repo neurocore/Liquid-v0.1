@@ -2,14 +2,13 @@ module protocol;
 import std.stdio, std.format, std.array;
 import std.file, std.conv;
 import std.algorithm;
-import consts, utils, moves;
+import app, consts, utils, moves;
 import command, options, timer;
 
 abstract class Protocol
 {
 public:
   static Protocol * detect();
-  void greet();
   Cmd parse(string line, Options options);
 }
 
@@ -43,8 +42,8 @@ private class WordsReader
   {
     debug
     {
-      writeln("pos: ", pos);
-      writeln("words: ", words);
+      log("pos: ", pos);
+      log("words: ", words);
     }
   }
 
@@ -57,22 +56,17 @@ private:
 class UCI : Protocol
 {
 private:
-  File log;
+  File flog;
 
 public:
   this()
   {
-    log = File("log.txt", "w");
+    flog = File("log.txt", "w");
   }
 
   ~this()
   {
-    log.close();
-  }
-
-  override void greet()
-  {
-    writeln("Hello from UCI!");
+    flog.close();
   }
 
   override Cmd parse(string line, Options options)
@@ -100,6 +94,10 @@ public:
     {
       string depth = parts.length > 1 ? reader.get_word() : "1";
       return new Cmd_Perft(depth.safe_to!int(1));
+    }
+    else if (cmd == "bench")
+    {
+      if (parts.length > 1) return new Cmd_Bench(parts[1]);
     }
     else if (cmd == "debug")
     {

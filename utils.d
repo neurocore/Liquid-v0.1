@@ -2,6 +2,7 @@ module utils;
 import std.stdio, std.format, std.conv;
 import std.traits, std.typecons, std.regex;
 import std.array, std.string, std.algorithm;
+import app;
 
 alias Sink = void delegate(const(char)[]);
 alias Fmt = FormatSpec!char;
@@ -29,9 +30,9 @@ void equal(T)(string name, T lhc, T rhc, string file = __FILE__, size_t line = _
 
   if (lhc != rhc)
   {
-    writefln("Equality failed: " ~ num ~ " == " ~ num, lhc, rhc);
-    writeln("Name: ", name);
-    writeln("File: ", file, " - line ", __LINE__, "\n");
+    sayf("Equality failed: " ~ num ~ " == " ~ num, lhc, rhc);
+    say("Name: ", name);
+    say("File: ", file, " - line ", __LINE__, "\n");
     assert(false);
   }
 }
@@ -97,8 +98,8 @@ template parse_san(string scheme)
     auto the_match = match(str, rx);
     if (!the_match) return data;
 
-    //debug writeln("scheme = ", scheme);
-    //debug writeln("regex = ", rx);
+    //log("scheme = ", scheme);
+    //log("regex = ", rx);
 
     auto captures = the_match.captures;
     captures.popFront();
@@ -116,12 +117,13 @@ template parse_san(string scheme)
 
 void todo(string text, string file = __FILE__, size_t line = __LINE__)
 {
-  //debug writefln("TODO: %s:%d - %s\n", file, line, text);
+  //logf("TODO: %s:%d - %s\n", file, line, text);
 }
 
-void error(string text)
+bool error(string text)
 {
-  stderr.writeln("error: ", text, "\n");
+  err("error: ", text, "\n");
+  return false;
 }
 
 bool input_available()

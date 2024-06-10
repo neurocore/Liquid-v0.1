@@ -3,7 +3,7 @@ import std.array, std.ascii, std.string;
 import std.math.algebraic, std.conv;
 import bitboard, square, consts, eval;
 import movelist, types, piece, solver;
-import moves, utils, magics, tables;
+import app, moves, utils, magics, tables;
 
 struct State // 4 bytes
 {
@@ -115,12 +115,12 @@ class Board
     }
   }
 
-  void set(string fen = Pos.Init)
+  bool set(string fen = Pos.Init)
   {
     SQ sq = A8;
 
-    string[] parts = fen.split();
-    if (parts.length < 4) return error("Too few data in fen string");
+    string[] parts = fen.split(' ');
+    if (parts.length < 4) return error("less than 4 parts");
 
     clear();
 
@@ -146,9 +146,7 @@ class Board
     todo("calc hash key");
 
     foreach (ch; parts[1]) // parsing color
-    {
       color = ch.to_color();
-    }
 
     state = State.init;
     state.castling = Castling.init;
@@ -159,14 +157,12 @@ class Board
 
     state.ep = parts[3].toSQ(); // en passant
 
-    if (parts.length < 5) return;
-
-    if (isNumeric(parts[4])) // fifty rule counter
-      state.fifty = to!u8(parts[4]);
-
-    if (parts.length < 6) return;
+    string fifty = parts.length > 4 ? parts[4] : "";
+    state.fifty = fifty.safe_to!u8; // fifty move counter
 
     // full move counter - no need
+
+    return true;
   }
 
   string to_fen()
@@ -264,7 +260,7 @@ class Board
 
   Move san(string str)
   {
-    //debug writeln(str);
+    //log(str);
 
     // Castlings
 
@@ -302,12 +298,12 @@ class Board
       p = to_piece(Pawn, color);
       file = data[0];
 
-      if (data[2] < 0)
+      if (data[2] < 0) // no rank
         to_mask &= file_bb[data[1]];
       else
-        to &= to_sq(data[1], data[2]);
+        to = to_sq(data[1], data[2]);
 
-      if (data[3] > 0) mt = cast(MT)(MT.NProm + data[3] - 1);
+      if (data[3] > 0) mt = cast(MT)(MT.NCapProm + data[3] - 1);
     }
     else if (auto data = parse_san!"a1=Q"(str)) // pawn move
     {

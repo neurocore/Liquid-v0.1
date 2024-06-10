@@ -1,7 +1,7 @@
 module command;
 import std.stdio, std.format;
 import engine, moves, timer;
-import piece, consts;
+import app, piece, consts;
 
 abstract class Cmd
 {
@@ -59,7 +59,7 @@ class Cmd_Response : Cmd
 
   override void execute(Engine E)
   {
-    writeln(str);
+    say(str);
     stdout.flush();
   }
 }
@@ -91,7 +91,7 @@ class Cmd_Option : Cmd
   override void execute(Engine E)
   {
     E.options.set(name, val);
-    debug writefln("%v", E.options);
+    logf("%v", E.options);
   }
 }
 
@@ -122,6 +122,17 @@ class Cmd_Perft : Cmd
   }
 }
 
+class Cmd_Bench : Cmd
+{
+  private string file;
+  this(string file) { this.file = file; }
+  
+  override void execute(Engine E)
+  {
+    E.bench(file);
+  }
+}
+
 class Cmd_Pos : Cmd
 {
   private string fen;
@@ -145,7 +156,7 @@ class Cmd_Pos : Cmd
       }
     }
 
-    writeln(E.board);
+    log(E.board);
   }
 }
 
@@ -166,6 +177,6 @@ class Cmd_Quit : Cmd
 
   override void execute(Engine E)
   {
-    debug writeln("Good to see you again");
+    log("Good to see you again");
   }
 }

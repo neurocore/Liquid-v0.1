@@ -4,7 +4,7 @@ import std.algorithm: min, max;
 import types, solver, movelist;
 import timer, board, moves, gen;
 import consts, engine, piece;
-import hash, eval;
+import app, hash, eval;
 
 class SolverPVS : Solver
 {
@@ -40,14 +40,14 @@ class SolverPVS : Solver
   {
     debug
     {
-      writeln("------ stack ------");
+      log("------ stack ------");
       auto high = full ? undos.ptr + Limits.Plies - 1 : undo;
       for (Undo * it = undos.ptr; it <= high; it++)
       {
-        writeln(it - undos.ptr, " - ", it.state);
+        log(it - undos.ptr, " - ", it.state);
       }
-      writeln("x - ", B.get_state);
-      writeln("-------------------");
+      log("x - ", B.get_state);
+      log("-------------------");
     }
   }
 
@@ -55,8 +55,8 @@ class SolverPVS : Solver
   {
     u64 count = 0u;
 
-    writeln("-- Perft ", depth);
-    writeln(B);
+    say("-- Perft ", depth);
+    say(B);
 
     //show_states(true);
 
@@ -70,12 +70,12 @@ class SolverPVS : Solver
     {
       if (!B.make(move, undo)) continue;
 
-      write(format("%v - ", move));
+      if (mode == Mode.Game) write(move, " - ");
 
       u64 cnt = perft_inner(depth - 1);
       count += cnt;
 
-      writeln(cnt);
+      say(cnt);
 
       B.unmake(move, undo);
     }
@@ -83,11 +83,11 @@ class SolverPVS : Solver
     i64 time = timer.getms();
     double knps = cast(double)count / (time + 1);
 
-    writeln();
-    writeln("Count: ", count);
-    writeln("Time: ", time, " ms");
-    writeln("Speed: ", knps, " knps");
-    writeln("\n");
+    say();
+    say("Count: ", count);
+    say("Time: ", time, " ms");
+    say("Speed: ", knps, " knps");
+    say("\n");
 
     return count;
   }
@@ -132,13 +132,13 @@ class SolverPVS : Solver
 
       best = undos[0].best;
       string fmt = "info depth %d seldepth %d score cp %d nodes %d time %d pv %s";
-      writefln(fmt, depth, max_ply, val, nodes, timer.getms(), best);
+      sayf(fmt, depth, max_ply, val, nodes, timer.getms(), best);
       stdout.flush();
 
       if (val > Val.Mate || val < -Val.Mate) break;
     }
 
-    format("bestmove %s", best).writeln;
+    say("bestmove ", best);
     stdout.flush();
 
     thinking = false;

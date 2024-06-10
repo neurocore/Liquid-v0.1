@@ -1,9 +1,10 @@
 module engine;
 import std.stdio, std.string;
+import std.algorithm: canFind;
 import consts, command, moves;
 import piece, board, protocol;
 import solver, solver_pvs;
-import timer, options;
+import app, epd, timer, options;
 
 class Engine
 {
@@ -22,10 +23,10 @@ class Engine
 
   void start()
   {
-    debug writeln(format("%v", options));
+    logf("%v", options);
 
     new_game();
-    debug writeln(B);
+    log(B);
 
     bool running;
     do
@@ -33,6 +34,46 @@ class Engine
       running = read_input();
     }
     while (running);
+  }
+
+  void bench(string file)
+  {
+    Mode old_mode = mode;
+    mode = Mode.Bench;
+
+    EPD problems = new EPD(file);
+
+    int total = 0;
+    int correct = 0;
+
+    foreach (P; problems.list)
+    {
+      total++;
+      string num = format("%d", total);
+      writef("%s | %s - ", num.rightJustify(5), P.id);
+
+      stop();
+      B.set(P.fen);
+      S[0].set(B);
+      Move move = S[0].get_move(9000);
+
+      if (P.best.canFind(move))
+      {
+        write("correct");
+        correct++;
+      }
+      else
+      {
+        write("fail!  ");
+      }
+
+      writeln("  |  ", move, "  --  ", P.best);
+    }
+
+    writefln("\nSolved: %d/%d", correct, total);
+    writefln("Percentage: %f%%", 100.0 * correct / total);
+
+    mode = old_mode;
   }
 
   bool read_input()
@@ -47,13 +88,13 @@ class Engine
   {
     debug
     {
-      writeln(message);
+      say(message);
     }
     else
     {
       if (options.flag_debug)
       {
-        writeln("info string ", message);
+        say("info string %s", message);
         stdout.flush();
       }
     }
@@ -93,8 +134,6 @@ class Engine
   {
     Undo * undo = undos.ptr;
     Move move = B.recognize(mv);
-    //writeln("MT = ", move.mt);
-    //writeln(mv, " -> ", move);
     if (move == Move.None) return false;
     return B.make(move, undo);
   }
