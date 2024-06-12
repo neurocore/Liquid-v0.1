@@ -147,7 +147,7 @@ class SolverPVS : Solver
 
   int pvs(int alpha, int beta, int depth)
   {
-    if (depth <= 0) return B.eval(E); // return qs(alpha, beta);
+    if (depth <= 0) return qs(alpha, beta); // B.eval(E);
     //check_input();
     if (time_lack()) return 0;
 
@@ -230,6 +230,38 @@ class SolverPVS : Solver
     }
 
     //H->set(B->hash(), B->best(), alpha, hash_type, depth, ply;
+
+    return alpha;
+  }
+
+  int qs(int alpha, int beta)
+  {
+    //check_input();
+    if (time_lack()) return 0;
+
+    nodes++;
+    int stand_pat = B.eval(E);
+    if (stand_pat >= beta) return beta;
+    if (alpha < stand_pat) alpha = stand_pat;
+
+    // Looking all captures moves
+
+    auto ml = undo.ml;
+    ml.clear();
+    B.generate!1(ml);
+    ml.value_moves(B, undo); // TODO: add qs ordering
+
+    foreach (Move move; ml)
+    {
+      if (!B.make(move, undo)) continue;
+
+      int val = -qs(-beta, -alpha);
+
+      B.unmake(move, undo);
+
+      if (val >= beta) return beta;
+      if (val > alpha) alpha = val;
+    }
 
     return alpha;
   }

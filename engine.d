@@ -36,20 +36,18 @@ class Engine
     while (running);
   }
 
-  void bench(string file)
+  BenchResult bench(string file)
   {
+    BenchResult result = {0, 0};
     Mode old_mode = mode;
     mode = Mode.Bench;
 
     EPD problems = new EPD(file);
 
-    int total = 0;
-    int correct = 0;
-
     foreach (P; problems.list)
     {
-      total++;
-      string num = format("%d", total);
+      result.total++;
+      string num = format("%d", result.total);
       writef("%s | %s - ", num.rightJustify(5), P.id);
 
       stop();
@@ -62,7 +60,7 @@ class Engine
       if (!P.avoid.empty) success &= !P.avoid.canFind(move);
 
       write(success ? "correct" : "fail!  ");
-      correct += success;
+      result.correct += success;
 
       write("  |  ", move, "  -- ");
       if (!P.best.empty) write(" ", P.best);
@@ -70,10 +68,10 @@ class Engine
       writeln();
     }
 
-    writefln("\nSolved: %d/%d", correct, total);
-    writefln("Percentage: %.2f%%", 100.0 * correct / total);
+    writeln("\nSolved: ", result);
 
     mode = old_mode;
+    return result;
   }
 
   bool read_input()

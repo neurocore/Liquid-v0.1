@@ -29,6 +29,14 @@ struct SearchParams
   MS movetime = MS.max;
 }
 
+struct BenchResult
+{
+  float rate() @property { return 100.0 * correct / total; }
+  string toString() { return format("%d/%d - %.2f%%", correct, total, rate); }
+
+  int correct, total;
+}
+
 
 enum Bad { Empty, Unknown, Incomplete, Invalid }
 
@@ -130,6 +138,21 @@ class Cmd_Bench : Cmd
   override void execute(Engine E)
   {
     E.bench(file);
+  }
+}
+
+class Cmd_Benchmark : Cmd
+{  
+  override void execute(Engine E)
+  {
+    BenchResult[] results;
+    results ~= E.bench("datasets/wac2018.epd");
+    results ~= E.bench("datasets/bk_test.epd");
+    results ~= E.bench("datasets/kaufman.epd");
+    results ~= E.bench("datasets/arasan2023.epd");
+
+    foreach (r; results) write(r, "   ");
+    writeln();
   }
 }
 

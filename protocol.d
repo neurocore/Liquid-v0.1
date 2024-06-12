@@ -98,6 +98,7 @@ public:
     else if (cmd == "bench")
     {
       if (parts.length > 1) return new Cmd_Bench(parts[1]);
+      else return new Cmd_Benchmark();
     }
     else if (cmd == "debug")
     {
