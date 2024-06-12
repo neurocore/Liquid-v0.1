@@ -57,21 +57,21 @@ class Engine
       S[0].set(B);
       Move move = S[0].get_move(9000);
 
-      if (P.best.canFind(move))
-      {
-        write("correct");
-        correct++;
-      }
-      else
-      {
-        write("fail!  ");
-      }
+      bool success = true;
+      if (!P.best.empty)  success &=  P.best.canFind(move);
+      if (!P.avoid.empty) success &= !P.avoid.canFind(move);
 
-      writeln("  |  ", move, "  --  ", P.best);
+      write(success ? "correct" : "fail!  ");
+      correct += success;
+
+      write("  |  ", move, "  -- ");
+      if (!P.best.empty) write(" ", P.best);
+      if (!P.avoid.empty) write(" ~", P.avoid);
+      writeln();
     }
 
     writefln("\nSolved: %d/%d", correct, total);
-    writefln("Percentage: %f%%", 100.0 * correct / total);
+    writefln("Percentage: %.2f%%", 100.0 * correct / total);
 
     mode = old_mode;
   }
