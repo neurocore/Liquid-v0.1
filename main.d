@@ -18,21 +18,21 @@ void main(string[] args)
   }
 
   sayf("Chess engine %s v%s by %s (c) 2023\n", Name, Vers, Auth);
-  //say!(Mode.Bench)("this is benchmark");
 
   debug
   {
-    Board B = new Board;
-    B.set("3r3r/1k6/8/R1K5/4Q2Q/8/8/R6Q w - - 0 1");
-    log(B);
-    log("---");
-    log("R1xa3+! -> ", B.san("R1xa3+!"));
-    log("Qh4e1# -> ", B.san("Qh4e1#"));
+    import hash, solver;
+    writeln("State.size = ", State.sizeof);
+    writeln("Undo.size = ", Undo.sizeof);
+    writeln("HashEntry.size = ", HashEntry.sizeof);
+    writeln(__traits(isPOD, State));
+    writeln(__traits(isPOD, HashEntry));
+    writeln(Table.between(D1, F3).to_bitboard);
 
-    B.set("2r1k2r/2pn1pp1/1p3n1p/p3PP2/4q2B/P1P5/2Q1N1PP/R4RK1 w k -");
-    log(B);
-    log("---");
-    log("exf6 -> ", B.san("exf6"));
+    //writefln("%(%(%16x\n%)\n\n%)", hash_key);
+    //writefln("%(%16x\n%)", hash_castle);
+    //writefln("%(%16x\n%)", hash_ep);
+    //writefln("%(%16x\n%)", hash_wtm);
   }
 
   auto engine = new Engine();

@@ -44,7 +44,7 @@ u64 bit(SQ sq) { return Bit << cast(int)sq; }
 u64 bits(SQ[] sqs)
 {
   u64 bb = Empty;
-  foreach (sq; sqs) bb |= bit(sq);
+  foreach (sq; sqs) bb |= sq.bit;
   return bb;
 }
 
@@ -59,19 +59,19 @@ u64 msb(u64 bb)
   return Bit << n;
 }
 
-bool get(u64 bb, u8 index)
+bool get(u64 bb, SQ index)
 {
-  return cast(bool) (bb & (Bit << index));
+  return cast(bool)(bb & index.bit);
 }
 
-u64 set(u64 bb, u8 index)
+u64 set(u64 bb, SQ index)
 {
-  return bb | (Bit << index);
+  return bb | index.bit;
 }
 
-u64 reset(u64 bb, u8 index)
+u64 reset(u64 bb, SQ index)
 {
-  return bb & !(Bit << index);
+  return bb & !index.bit;
 }
 
 SQ bitscan(u64 bb)

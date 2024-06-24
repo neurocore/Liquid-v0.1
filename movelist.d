@@ -13,58 +13,70 @@ struct MoveVal
 
 class MoveListGen(bool simple = false)
 {
-  this(Move hashmove = Move())
+  this()
   {
-    this.hashmove = hashmove;
-    this.moves = new MoveVal[Limits.Moves];
+    hashmove_ = Move.None;
+    moves_ = new MoveVal[Limits.Moves];
     clear();
   }
 
-  void clear(Move hash_move = Move())
+  void clear(Move hashmove = Move.None)
   {
-    curr = last = first = moves.ptr;
-    hashmove = Move();
-    if (hash_move)
+    curr_ = last_ = first_ = moves_.ptr;
+    hashmove_ = Move.None;
+    correct_hash_ = false;
+
+    if (hashmove != Move.None)
     {
-      add(hash_move, 100000);
-      hashmove = hash_move;
+      add(hashmove, Order.Hash);
+      hashmove_ = hashmove;
     }
   }
 
-  bool   empty() const { return last == first; }
-  size_t count() const { return last -  first; }
+  bool is_hash_correct() const
+  {
+    if (hashmove_.is_empty) return true;
+    return correct_hash_;
+  }
+
+  bool   empty() const { return last_ == first_; }
+  size_t count() const { return last_ -  first_; }
 
   ref Move front()
   {
-    static if (simple) return first.move;
+    static if (simple) return first_.move;
 
-    curr = first;
-    for (MoveVal * ptr = first + 1; ptr != last; ++ptr)
+    curr_ = first_;
+    for (MoveVal * ptr = first_ + 1; ptr != last_; ++ptr)
     {
-      if (ptr.val > curr.val) curr = ptr;
+      if (ptr.val > curr_.val) curr_ = ptr;
     }
-    return curr.move;
+    return curr_.move;
   }
 
   void popFront()
   {
     static if (simple)
     {
-      first++;
+      first_++;
     }
     else
     {
-      remove(curr);
+      remove(curr_);
     }
   }
 
   void add(Move move, int val = 0)
   {
-    if (move == hashmove) return;
-    assert(last - first < Limits.Moves);
-    last.move = move;
-    last.val = val;
-    ++last;
+    if (move == hashmove_)
+    {
+      correct_hash_ = true;
+      return;
+    }
+    assert(last_ - first_ < Limits.Moves);
+    last_.move = move;
+    last_.val = val;
+    ++last_;
   }
 
   void add_move(SQ from, SQ to, MT mt = MT.Quiet)
@@ -96,9 +108,9 @@ class MoveListGen(bool simple = false)
     const int[] cost = [1, 1, 3, 3, 3, 3, 5, 5, 9, 9, 200, 200, 0, 0];
     const int[] prom = [0, cost[WN], cost[WB], cost[WR], cost[WQ], 0];
 
-    for (MoveVal * ptr = first; ptr != last; ptr++)
+    for (MoveVal * ptr = first_; ptr != last_; ptr++)
     {
-      if (ptr.move == hashmove)       { ptr.val = Order.Hash;    continue; }
+      if (ptr.move == hashmove_)      { ptr.val = Order.Hash;    continue; }
       if (ptr.move == undo.killer[0]) { ptr.val = Order.Killer1; continue; }
       if (ptr.move == undo.killer[1]) { ptr.val = Order.Killer2; continue; }
 
@@ -130,23 +142,24 @@ class MoveListGen(bool simple = false)
   {
     import std.format;
     string str;
-    for (const(MoveVal) * ptr = first; ptr != last; ptr++)
+    for (const(MoveVal) * ptr = first_; ptr != last_; ptr++)
     {
-      str ~= format("%v - %i", ptr.move, ptr.val);
+      str ~= format("%v - %d\n", ptr.move, ptr.val);
     }
     return str ~ "\n";
   }
 
 private:
-  Move hashmove;
-  MoveVal[] moves;
-  MoveVal * first, last, curr;
-  int lower_bound = -int.max; // TODO: not implemented
+  Move hashmove_;
+  MoveVal[] moves_;
+  MoveVal * first_, last_, curr_;
+  int lower_bound_ = -int.max; // TODO: not implemented
+  bool correct_hash_ = false;
 
   void remove(MoveVal * ptr)
   {
-    *ptr = *(last - 1);
-    --last;
+    *ptr = *(last_ - 1);
+    --last_;
   }
 }
 

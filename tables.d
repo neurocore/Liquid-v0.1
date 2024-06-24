@@ -31,6 +31,7 @@ final class Table
   private this() {}; // instance creation is forbidden
   static this()
   {
+    pmov_.zeros;
     att_.zeros;
     dir_.zeros;
     between_.zeros;
@@ -56,15 +57,24 @@ final class Table
 
     foreach (SQ sq; A1 .. SQ.size)
     {
+      if (sq.rank > 0 && sq.rank < 7)
+      {
+        pmov_[0][sq] = sq.bit >> 8;
+        pmov_[1][sq] = sq.bit << 8;
+      }
+
+      if (sq.rank == 6) pmov_[0][sq] |= sq.bit >> 16;
+      if (sq.rank == 1) pmov_[1][sq] |= sq.bit << 16;
+
       front_one_[0][sq] = Empty;
       front_one_[1][sq] = Empty;
-      if (rank(sq) < 7) front_one_[0][sq] = (Bit << sq) >> 8;
-      if (rank(sq) > 0) front_one_[1][sq] = (Bit << sq) << 8;
+      if (rank(sq) < 7) front_one_[0][sq] = sq.bit >> 8;
+      if (rank(sq) > 0) front_one_[1][sq] = sq.bit << 8;
 
       front_[0][sq] = Empty;
       front_[1][sq] = Empty;
-      for (u64 bb = (Bit << sq) >> 8; bb; bb >>= 8) front_[0][sq] |= bb;
-      for (u64 bb = (Bit << sq) << 8; bb; bb <<= 8) front_[1][sq] |= bb;
+      for (u64 bb = sq.bit >> 8; bb; bb >>= 8) front_[0][sq] |= bb;
+      for (u64 bb = sq.bit << 8; bb; bb <<= 8) front_[1][sq] |= bb;
     }
 
     foreach (SQ sq; A1 .. SQ.size)
@@ -97,7 +107,7 @@ final class Table
           dir_[i][j] = dt;
 
           for (int k = i + dt; k < j; k += dt)
-            between_[i][j] |= Bit << k;
+            between_[i][j] |= (Bit << k);
         }
 
         dir_[j][i] = -dir_[i][j];
@@ -107,6 +117,7 @@ final class Table
   }
 
 static:
+  u64 p_moves(Color color, SQ sq)  { return pmov_[color][sq]; }
   u64 atts(Piece piece, SQ sq)     { return att_[piece][sq]; }
   int direction(SQ i, SQ j)        { return dir_[i][j]; }
   u64 between(SQ i, SQ j)          { return between_[i][j]; }
@@ -132,13 +143,14 @@ private:
 
           if (x < 0 || x > 7 || y < 0 || y > 7) break;
 
-          att_[piece][sq] |= Bit << to_sq(x, y);
+          att_[piece][sq] |= to_sq(x, y).bit;
         }
         while (slider);
       }
     }
   }
 
+  u64[SQ.size + 2][SQ.size + 2] pmov_;
   u64[SQ.size + 2][Piece.size] att_;
   int[SQ.size + 2][SQ.size + 2] dir_;
   u64[SQ.size + 2][SQ.size + 2] between_;

@@ -4,7 +4,7 @@ import std.algorithm: min, max;
 import types, solver, movelist;
 import timer, board, moves, gen;
 import consts, engine, piece;
-import app, hash, eval;
+import app, hash, eval, hash;
 
 class SolverPVS : Solver
 {
@@ -16,6 +16,7 @@ class SolverPVS : Solver
     undo = undos.ptr;
     B = new Board;
     E = new EvalSimple;
+    H = new Hash;
   }
 
   override void set(const Board board) { B = board.dup(); }
@@ -147,7 +148,7 @@ class SolverPVS : Solver
 
   int pvs(int alpha, int beta, int depth)
   {
-    if (depth <= 0) return qs(alpha, beta); // B.eval(E);
+    if (depth <= 0) return qs(alpha, beta);
     //check_input();
     if (time_lack()) return 0;
 
@@ -170,58 +171,98 @@ class SolverPVS : Solver
 
     // 1. Retrieving hash move
 
-    //HashEntry * he = H->get(B->hash(), alpha, beta, depth, ply;
-    //if (alpha == beta) return alpha;
-    //Move hash_move = he ? he->move : None;
+    //import bitboard;
+    //u64 key = B.calc_hash();
+    //assert(
+    //  key == B.state.hash,
+    //  format(
+    //    "hash key is wrong\n%s\n%16x\n%16x\n%16x",
+    //    B, key, B.state.hash, key ^ B.state.hash
+    //  )
+    //);
+
+    HashEntry he = H.get(B.state.hash, alpha, beta, depth, ply, !in_pv);
+    if (alpha == beta) return alpha;
+    Move hash_move = he.is_bad ? Move.None : he.move;
+    if (!B.is_allowed(hash_move)) hash_move = Move.None;
+    //auto hash_move = Move.None;
 
     // Looking all legal moves
 
     auto ml = undo.ml;
-    ml.clear();
-    B.generate!0(ml);
-    B.generate!1(ml);
-    ml.value_moves(B, undo);
+    ml.clear(hash_move);
 
-    foreach (Move move; ml)
+outer: 
+    for (int i = 0; i < 2; i++)
     {
-      if (!B.make(move, undo)) continue;
-
-      legal++;
-      int new_depth = depth - 1;
-      bool reduced = false;
-
-      if (legal == 1)
-        val = -pvs(-beta, -alpha, new_depth);
-      else
+      if (i > 0 && ml.empty)
       {
-        val = -pvs(-alpha - 1, -alpha, new_depth);
-        if (val > alpha && val < beta)
-          val = -pvs(-beta, -alpha, new_depth);
+        B.generate!1(ml);
+        B.generate!0(ml);
+        ml.value_moves(B, undo);
       }
 
-      if (reduced && val >= beta)
-        val = -pvs(-beta, -alpha, new_depth + 1);
-
-      B.unmake(move, undo);
-
-      if (val > alpha)
+      foreach (Move move; ml)
       {
-        alpha = val;
-        hash_type = HashType.Exact;
-        undo.best = move;
+        if (!B.make(move, undo)) continue;
 
-        if (val >= beta)
+        legal++;
+        int new_depth = depth - 1;
+        bool reduced = false;
+
+        if (legal == 1)
+          val = -pvs(-beta, -alpha, new_depth);
+        else
         {
-          //int in_check = B.in_check();
-          //if (!is_cap_or_prom(move) && !in_check)
-          //  B->update_moves_stats(move, depth, history);
+          val = -pvs(-alpha - 1, -alpha, new_depth);
+          if (val > alpha && val < beta)
+            val = -pvs(-beta, -alpha, new_depth);
+        }
 
-          alpha = beta;
-          hash_type = HashType.Beta;
-          break;
+        if (reduced && val >= beta)
+          val = -pvs(-beta, -alpha, new_depth + 1);
+
+        B.unmake(move, undo);
+
+        if (val > alpha)
+        {
+          alpha = val;
+          hash_type = HashType.Exact;
+          undo.best = move;
+
+          if (val >= beta)
+          {
+            //int in_check = B.in_check();
+            //if (!is_cap_or_prom(move) && !in_check)
+            //  B->update_moves_stats(move, depth, history);
+
+            alpha = beta;
+            hash_type = HashType.Beta;
+            break outer;
+          }
         }
       }
     }
+
+    //if (legal > 1 && !ml.is_hash_correct())
+    //{
+    //  auto mv0 = new MoveList;
+    //  B.generate!0(mv0);
+    //  B.generate!1(mv0);
+
+    //  bool found = false;
+    //  Move fmove = Move.None;
+    //  foreach (m; mv0) if (m == hash_move)
+    //  {
+    //    found = true;
+    //    fmove = m;
+    //    break;
+    //  }
+    //  assert(false,
+    //    format("hashmove is incorrect\n%s%s\n%s\n\n%d\n%x\n%x\n%d",
+    //            B, mv0, hash_move, found, cast(u16)fmove,
+    //            cast(u16)hash_move, legal));
+    //}
 
     if (!legal)
     {
@@ -229,7 +270,7 @@ class SolverPVS : Solver
       return in_check > 0 ? val : 0; // contempt();
     }
 
-    //H->set(B->hash(), B->best(), alpha, hash_type, depth, ply;
+    H.set(B.state.hash, undo.best, depth, ply, alpha, hash_type);
 
     return alpha;
   }
@@ -271,7 +312,7 @@ private:
   Undo * undo;
   Board B;
   Eval E;
-  bool analysis = false;
+  Hash H;
   u64 nodes;
   int max_ply;
   MS to_think;

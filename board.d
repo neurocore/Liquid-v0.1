@@ -1,36 +1,43 @@
 module board;
 import std.array, std.ascii, std.string;
 import std.math.algebraic, std.conv;
-import bitboard, square, consts, eval;
-import movelist, types, piece, solver;
-import app, moves, utils, magics, tables;
+import bitboard, square, consts;
+import eval, movelist, types, piece;
+import solver, app, moves, utils;
+import hash, magics, tables;
 
-struct State // 4 bytes
+struct State // 12 bytes
 {
   align (1):
   SQ ep = SQ.None;
   Piece cap = Piece.NOP;
   Castling castling = Castling.ALL;
   u8 fifty = 0;
+  u64 bhash = Empty;
+
+  u64 hash() const @property
+  {
+    return bhash ^ hash_castle[castling] ^ hash_ep[ep];
+  }
 }
 
 class Board
 {
   void clear()
   {
-    foreach (p; Piece.BP .. Piece.size) piece[p] = 0;
-    foreach (c; Color.Black .. Color.size) occ[c] = Empty;
-    foreach (x; SQ.A1 .. SQ.size) square[x] = Piece.NOP;
-    color = Color.White;
+    foreach (p; BP .. Piece.size) piece[p] = 0;
+    foreach (c; Black .. Color.size) occ[c] = Empty;
+    foreach (x; A1 .. SQ.size) square[x] = Piece.NOP;
+    color = White;
     state = State();
   }
 
   Board dup() const
   {
     Board B = new Board;
-    foreach (p; Piece.BP .. Piece.size) B.piece[p] = piece[p];
-    foreach (c; Color.Black .. Color.size) B.occ[c] = occ[c];
-    foreach (x; SQ.A1 .. SQ.size) B.square[x] = square[x];
+    foreach (p; BP .. Piece.size) B.piece[p] = piece[p];
+    foreach (c; Black .. Color.size) B.occ[c] = occ[c];
+    foreach (x; A1 .. SQ.size) B.square[x] = square[x];
     B.color = color;
     B.state = state;
     return B;
@@ -82,10 +89,10 @@ class Board
     return is_attacked(king, occ[0] | occ[1], opp);
   }
 
-  void place(bool full = false)(SQ sq, Piece p)
+  void place(bool full = true)(SQ sq, Piece p)
   {
-    piece[p]     ^= (Bit << sq);
-    occ[p.color] ^= (Bit << sq);
+    piece[p]     ^= sq.bit;
+    occ[p.color] ^= sq.bit;
     square[sq]    = p;
 
     static if (full)
@@ -93,25 +100,26 @@ class Board
       // state.pst += E->pst[p][sq];
       // state.mkey += matkey[p];
 
-      // state.hash ^= hash_key[p][sq];
+       state.bhash ^= hash_key[p][sq];
     }
   }
 
-  void remove(bool full = false)(SQ sq)
+  void remove(bool full = true)(SQ sq)
   {
+    import std.format;
     Piece p = square[sq];
-    assert(p < Piece.size);
+    assert(p < Piece.size, format("no piece to remove\n%s\nSQ = %s", this, sq));
 
-    piece[p]     ^= (Bit << sq);
-    occ[p.color] ^= (Bit << sq);
+    piece[p]     ^= sq.bit;
+    occ[p.color] ^= sq.bit;
     square[sq]    = Piece.NOP;
 
     static if (full)
     {
-      // state->pst -= E->pst[p][square];
-      // state->mkey -= matkey[p];
+      // state.pst -= E->pst[p][sq];
+      // state.mkey -= matkey[p];
 
-      // state->hash ^= hash_key[p][square];
+       state.bhash ^= hash_key[p][sq];
     }
   }
 
@@ -143,12 +151,9 @@ class Board
       }
     }
 
-    todo("calc hash key");
-
     foreach (ch; parts[1]) // parsing color
       color = ch.to_color();
 
-    state = State.init;
     state.castling = Castling.init;
     foreach (ch; parts[2]) // parsing castling
     {
@@ -161,6 +166,8 @@ class Board
     state.fifty = fifty.safe_to!u8; // fifty move counter
 
     // full move counter - no need
+
+    state.bhash ^= hash_wtm[color];
 
     return true;
   }
@@ -188,6 +195,7 @@ class Board
           str ~= to_char(p);
           str ~= ' ';
         }
+        if (rank == 1) str ~= format("  #%016x", state.hash);
         str ~= "\n";
       }
       str ~= "  +----------------   ";
@@ -204,7 +212,22 @@ class Board
   Piece get_piece(SQ sq) const { return square[sq]; }
   Piece get_piece(Move move) const { return square[move.from]; }
 
-  import std.stdio;
+  u64 calc_hash() const
+  {
+    u64 key = Empty;
+    foreach (p; BP .. Piece.size)
+      for (u64 bb = piece[p]; bb; bb = rlsb(bb))
+      {
+        SQ sq = bitscan(bb);
+        key ^= hash_key[p][sq];
+      }
+
+    key ^= hash_castle[state.castling];
+    key ^= hash_ep[state.ep];
+    key ^= hash_wtm[color];
+
+    return key;
+  }
 
   Move recognize(Move move)
   {
@@ -251,17 +274,64 @@ class Board
     // pseudolegality test (can be disabled if you trust GUI)
     if (abs(from - to) != 8 && !mt.is_pawn2() && !mt.is_castle())
     {
-      u64 att = attack(p, from) & (Bit << to);
+      u64 att = attack(p, from) & to.bit;
       if (!att) return Move.None;
     }
 
     return Move(from, to, mt);
   }
 
+  bool is_allowed(Move move) // pseudolegal
+  {
+    const SQ from = move.from;
+    const SQ to = move.to;
+    const MT mt = move.mt;
+    const Piece p = square[from];
+
+    if (p >= Piece.size) return false;         // piece is valid
+    if (!(piece[p] & from.bit)) return false; // and placed on from
+    if (p.color != color) return false;      // playing own pieces
+
+    if (mt.is_castle) // castlings
+    {
+      if (p == WK)
+      {
+        if (from != E1) return false;
+        if (to != G1 && to != C1) return false;
+      }
+      else if (p == BK)
+      {
+        if (from != E8) return false;
+        if (to != G8 && to != C8) return false;
+      }
+      else return false;
+    }
+    else if (p < BN) // pawn moves
+    {
+      if (!(Table.p_moves(p.color, from) & to.bit)) // not move forward
+      {
+        if (!(Table.atts(p, from) & to.bit)) return false; // not attack
+
+        if (to != state.ep) // not en passant
+        {
+          if (!(to.bit & occ[color.opp])) return false; // not capturing
+        }
+        return true;
+      }
+    }
+    else // piece moves
+    {
+      if (!(Table.atts(p, from) & to.bit)) return false; // piece can move
+    }
+
+    const u64 o = occ[0] | occ[1];
+    if (Table.between(from, to) & o) return false; // something between
+
+    return true;
+  }
+
   Move san(string str)
   {
-    //log(str);
-
     // Castlings
 
     if (str == "O-O")
@@ -341,7 +411,7 @@ class Board
     }
     else return Move.None;
 
-    to_mask = to == SQ.None ? to_mask : Bit << to;
+    to_mask = to == SQ.None ? to_mask : to.bit;
 
     // Looking for 'from' square
 
@@ -376,8 +446,12 @@ class Board
     return Move(from, to, mt);
   }
 
+  import std.stdio;
+
   bool make(const Move move, ref Undo * undo)
   {
+    assert(!move.is_empty, "can't make empty move");
+
     const SQ from = move.from;
     const SQ to = move.to;
     const MT mt = move.mt;
@@ -475,6 +549,7 @@ class Board
     }
 
     color ^= 1;
+    state.bhash ^= hash_wtm[0];
 
     if (in_check(1))
     {
@@ -508,6 +583,8 @@ class Board
 
   void unmake(const Move move, ref Undo * undo)
   {
+    assert(!move.is_empty, "can't unmake empty move");
+
     const SQ from = move.from;
     const SQ to = move.to;
     const MT mt = move.mt;
@@ -584,16 +661,6 @@ class Board
 
     undo--;
     state = undo.state;
-  }
-
-  // Just playing around
-  void ForBB(Func)(u64 bb, Func func)
-  {
-    for (u64 bb = piece[p]; bb; bb = rlsb(bb))
-    {
-      SQ s = bitscan(bb);
-      func();
-    }
   }
 
   u64 att_mask(bool captures)() const

@@ -23,6 +23,11 @@ struct Val
   enum Mate  = 32000;
 }
 
+struct HashTables
+{
+  enum Size = 4;
+}
+
 struct Pos
 {
   //enum Init = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";

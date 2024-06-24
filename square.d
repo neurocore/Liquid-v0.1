@@ -1,6 +1,6 @@
 module square;
 import std.algorithm, std.conv, std.string, std.range;
-import types, utils;
+import types, utils, bitboard;
 
 enum SQ : u8
 {

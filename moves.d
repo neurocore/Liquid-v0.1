@@ -72,10 +72,8 @@ struct Move // newtype paradigm
     return move == None || move == Null;
   }
 
-  bool opCast(T)()
-  {
-    if (is(T == bool)) return !is_empty;
-  }
+  T opCast(T: bool)() { return !is_empty; }
+  T opCast(T: u16)() { return move; }
 
   void toString(scope Sink sink, Fmt fmt) const
   {

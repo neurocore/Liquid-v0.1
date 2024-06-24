@@ -172,7 +172,7 @@ private:
     for (int i = 0; i < bits; i++)
     {
       int j = bitscan(mask);
-      if (index & (Bit << i)) result |= Bit << j;
+      if (index & (Bit << i)) result |= (Bit << j);
       mask = rlsb(mask);
     }
     return result;
@@ -184,7 +184,7 @@ private:
     foreach (Dir dir; dirs[cast(int)bishop])
     {
       u64 pre = Empty;
-      u64 bit = Bit << sq;
+      u64 bit = sq.bit;
 
       while (true)
       {
@@ -203,7 +203,7 @@ private:
     u64 result = Empty;
     foreach (Dir dir; dirs[cast(int)bishop])
     {
-      u64 bit = Bit << sq;
+      u64 bit = sq.bit;
       while (true)
       {
         bit = shift(bit, dir);

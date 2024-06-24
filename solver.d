@@ -34,7 +34,6 @@ struct Undo // Alpha-beta-like node state
   State state = State.init;
   MoveList ml;
   // Val pst;
-  // u64 hash;
   Move curr, best;
   Move[2] killer;
 }
