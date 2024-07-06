@@ -18,9 +18,33 @@ template GenAliases(T)
     {
       string name = format("%s", member);
       if (name == "size") break;
+
+      // alias name = type.name;
       str ~= "alias " ~ name ~ " = " ~ T.stringof ~ "." ~ name ~ ";\n";
     }
     return str;
+  }
+}
+
+template GenStrings(T)
+{
+  import std.format, std.traits, std.ascii;
+
+  string GenStrings()
+  {
+    const string type = T.stringof;
+    const string arr = type[0].toLower ~ type[1..$] ~ "_str";
+
+    // string[] terms = [...];
+    string str = "string[] " ~ arr ~ "= [";
+
+    foreach (T member; EnumMembers!T)
+    {
+      string name = format("%s", member);
+      if (name == "size") break;
+      str ~= "\"" ~ name ~ "\", ";
+    }
+    return str ~ "];\n";
   }
 }
 

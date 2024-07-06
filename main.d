@@ -21,6 +21,8 @@ void main(string[] args)
 
   debug
   {
+    //import std.conv;
+    //import eval, utils;
     import hash, solver;
     writeln("State.size = ", State.sizeof);
     writeln("Undo.size = ", Undo.sizeof);
@@ -28,6 +30,9 @@ void main(string[] args)
     writeln(__traits(isPOD, State));
     writeln(__traits(isPOD, HashEntry));
     writeln(Table.between(D1, F3).to_bitboard);
+
+    //writeln(to!string(Term.MatKnight));
+    //writeln(terms);
 
     //writefln("%(%(%16x\n%)\n\n%)", hash_key);
     //writefln("%(%16x\n%)", hash_castle);

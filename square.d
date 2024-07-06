@@ -58,6 +58,11 @@ SQ to_sq(string s)
   return s.length > 1 ? to_sq(s[0] - 'a', s[1] - '1') : SQ.None;
 }
 
+SQ opp(SQ sq)
+{
+  return to_sq(sq.file, 7 - sq.rank);
+}
+
 struct File
 {
   u64 bb;

@@ -15,7 +15,7 @@ class SolverPVS : Solver
       undos[i].ml = new MoveList;
     undo = undos.ptr;
     B = new Board;
-    E = new EvalSimple;
+    E = new EvalSmart;
     H = new Hash;
   }
 
@@ -181,11 +181,11 @@ class SolverPVS : Solver
     //  )
     //);
 
-    HashEntry he = H.get(B.state.hash, alpha, beta, depth, ply, !in_pv);
-    if (alpha == beta) return alpha;
-    Move hash_move = he.is_bad ? Move.None : he.move;
-    if (!B.is_allowed(hash_move)) hash_move = Move.None;
-    //auto hash_move = Move.None;
+    //HashEntry he = H.get(B.state.hash, alpha, beta, depth, ply, !in_pv);
+    //if (alpha == beta) return alpha;
+    //Move hash_move = he.is_bad ? Move.None : he.move;
+    //if (!B.is_allowed(hash_move)) hash_move = Move.None;
+    auto hash_move = Move.None;
 
     // Looking all legal moves
 
