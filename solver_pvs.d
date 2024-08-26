@@ -199,7 +199,7 @@ outer:
       {
         B.generate!1(ml);
         B.generate!0(ml);
-        ml.value_moves(B, undo);
+        ml.value_moves(B, undo, history);
       }
 
       foreach (Move move; ml)
@@ -290,7 +290,7 @@ outer:
     auto ml = undo.ml;
     ml.clear();
     B.generate!1(ml);
-    ml.value_moves(B, undo); // TODO: add qs ordering
+    ml.value_moves(B, undo, history); // TODO: add qs ordering
 
     foreach (Move move; ml)
     {
@@ -307,8 +307,27 @@ outer:
     return alpha;
   }
 
+  void update_moves_stats(Color color, Move move, int depth, Undo * undo)
+  {
+    history[color][move.from][move.to] += depth * depth;
+    if (history[color][move.from][move.to] >> 56)
+    {
+      import square;
+      foreach (i; A1..SQ.size)
+        foreach (j; A1..SQ.size)
+          history[color][i][j] >>= 1;
+    }
+
+    if (undo.killer[0] != move)
+    {
+      undo.killer[1] = undo.killer[0];
+      undo.killer[0] = move;
+    }
+  }
+
 private:
   Undo[Limits.Plies] undos;
+  u64[64][64][2] history;
   Undo * undo;
   Board B;
   Eval E;

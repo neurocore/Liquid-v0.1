@@ -1,12 +1,12 @@
 module movelist;
 import consts, square, moves;
 import piece, board, solver;
-import utils;
+import utils, types;
 
 struct MoveVal
 {
   Move move;
-  int val;
+  i64 val;
 }
 
 // Iterable (in for) move list
@@ -66,7 +66,7 @@ class MoveListGen(bool simple = false)
     }
   }
 
-  void add(Move move, int val = 0)
+  void add(Move move, i64 val = 0)
   {
     if (move == hashmove_)
     {
@@ -102,9 +102,8 @@ class MoveListGen(bool simple = false)
 
   // r1bk2nQ/pppn3p/5p2/3q4/8/2B2N1P/PP3PP1/3RR1K1 b - - 1 23
 
-  void value_moves(bool qs = false)(Board board, const Undo * undo)
+  void value_moves(bool qs = false)(Board board, const Undo * undo, ref u64[64][64][2] history)
   {
-    //const int[] val  = [100, 100, 300, 300, 350, 350, 500, 500, 900, 900, 20000, 20000, 0, 0];
     const int[] cost = [1, 1, 3, 3, 3, 3, 5, 5, 9, 9, 200, 200, 0, 0];
     const int[] prom = [0, cost[WN], cost[WB], cost[WR], cost[WQ], 0];
 
@@ -132,8 +131,12 @@ class MoveListGen(bool simple = false)
       }
       else if (mt.is_cap)
       {
-        int order = compare(v, a, Order.BadCap, Order.EqCap, Order.WinCap);
+        i64 order = compare(v, a, Order.BadCap, Order.EqCap, Order.WinCap);
         ptr.val = order + 100 * v - a; // MVV-LVA
+      }
+      else
+      {
+        ptr.val = history[board.color][from][to];
       }
     }
   }

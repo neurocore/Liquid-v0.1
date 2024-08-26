@@ -175,14 +175,13 @@ immutable int[64] uncastle = () @safe pure nothrow
   return arr;
 }();
 
-enum Order
+enum Order : i64 // 56 bits available
 {
-  Hash    = +0x40000000, // +
-  WinCap  = +0x30000000, // +
-  EqCap   = +0x20000000, // +
-  Killer1 = +0x10000001, // +
-  Killer2 = +0x10000000, // +
-  Castle  = +0x00000100, // - not used
-  Quiet   =  0x00000000, // +
-  BadCap  = -0x10000000, // +
+  Hash    = +0x40000000_00000000, // +
+  WinCap  = +0x30000000_00000000, // +
+  EqCap   = +0x20000000_00000000, // +
+  Killer1 = +0x10000001_00000000, // +
+  Killer2 = +0x10000000_00000000, // +
+  Quiet   =  0x00000000_00000000, // +
+  BadCap  = -0x10000000_00000000, // +
 }

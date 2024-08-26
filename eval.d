@@ -97,8 +97,8 @@ class Eval
   {
     string str;
     for (int i = 0; i < Term.size; i++)
-      str ~= format("%18s = %d\n", term_str[i],  term[i]);
-    return str.strip;
+      str ~= format("%18s = %d\n", term_str[i], term[i]);
+    return str;
   }
 }
 
@@ -316,6 +316,19 @@ class EvalSmart : Eval
       const u64 att = B.attack(p, sq);
       val += 3 * popcnt(att);
       val += pst[p][sq].op;
+    }
+    return val;
+  }
+
+  private int evaluate(Piece p : WP, BP)(const Board B) const
+  {
+    int val = 0;
+    for (u64 bb = B.piece[p]; bb; bb = rlsb(bb))
+    {
+      //const SQ sq = bitscan(bb);
+      //const u64 att = B.attack(p, sq);
+      //val += 3 * popcnt(att);
+      //val += pst[p][sq].op;
     }
     return val;
   }
