@@ -11,10 +11,10 @@ class SolverPVS : Solver
   this(Engine engine)
   {
     super(engine);
-    for (int i = 0; i < Limits.Plies; i++)
-      undos[i].ml = new MoveList;
-    undo = undos.ptr;
     B = new Board;
+    for (int i = 0; i < Limits.Plies; i++)
+      undos[i].ms = new MoveSeries(&B);
+    undo = undos.ptr;
     E = new EvalSmart;
     H = new Hash;
   }
@@ -62,13 +62,12 @@ class SolverPVS : Solver
     //show_states(true);
 
     timer.start();
-    auto ml = undo.ml;
-    ml.clear();
-    B.generate!0(ml);
-    B.generate!1(ml);
+    auto ms = undo.ms;
+    undo.ms.init();
 
-    foreach (Move move; ml)
+    foreach (Move move; ms)
     {
+      if (move.is_empty) break;
       if (!B.make(move, undo)) continue;
 
       if (mode == Mode.Game) write(move, " - ");
@@ -97,14 +96,13 @@ class SolverPVS : Solver
   {
     if (depth <= 0) return 1;
 
-    auto ml = undo.ml;
-    ml.clear();
-    B.generate!0(ml);
-    B.generate!1(ml);
+    auto ms = undo.ms;
+    ms.init();
 
     u64 count = 0u;
-    foreach (Move move; ml)
+    foreach (Move move; ms)
     {
+      if (move.is_empty) break;
       if (!B.make(move, undo)) continue;
 
       count += depth > 1 ? perft_inner(depth - 1) : 1;
@@ -189,57 +187,47 @@ class SolverPVS : Solver
 
     // Looking all legal moves
 
-    auto ml = undo.ml;
-    ml.clear(hash_move);
+    auto ms = undo.ms;
+    ms.init(false, hash_move);
 
-outer: 
-    for (int i = 0; i < 2; i++)
+    foreach (Move move; ms)
     {
-      if (i > 0 && ml.empty)
+      if (move.is_empty) break;
+      if (!B.make(move, undo)) continue;
+
+      legal++;
+      int new_depth = depth - 1;
+      bool reduced = false;
+
+      if (legal == 1)
+        val = -pvs(-beta, -alpha, new_depth);
+      else
       {
-        B.generate!1(ml);
-        B.generate!0(ml);
-        ml.value_moves(B, undo, history);
+        val = -pvs(-alpha - 1, -alpha, new_depth);
+        if (val > alpha && val < beta)
+          val = -pvs(-beta, -alpha, new_depth);
       }
 
-      foreach (Move move; ml)
+      if (reduced && val >= beta)
+        val = -pvs(-beta, -alpha, new_depth + 1);
+
+      B.unmake(move, undo);
+
+      if (val > alpha)
       {
-        if (!B.make(move, undo)) continue;
+        alpha = val;
+        hash_type = HashType.Exact;
+        undo.best = move;
 
-        legal++;
-        int new_depth = depth - 1;
-        bool reduced = false;
-
-        if (legal == 1)
-          val = -pvs(-beta, -alpha, new_depth);
-        else
+        if (val >= beta)
         {
-          val = -pvs(-alpha - 1, -alpha, new_depth);
-          if (val > alpha && val < beta)
-            val = -pvs(-beta, -alpha, new_depth);
-        }
+          //int in_check = B.in_check();
+          //if (!is_cap_or_prom(move) && !in_check)
+          //  B->update_moves_stats(move, depth, history);
 
-        if (reduced && val >= beta)
-          val = -pvs(-beta, -alpha, new_depth + 1);
-
-        B.unmake(move, undo);
-
-        if (val > alpha)
-        {
-          alpha = val;
-          hash_type = HashType.Exact;
-          undo.best = move;
-
-          if (val >= beta)
-          {
-            //int in_check = B.in_check();
-            //if (!is_cap_or_prom(move) && !in_check)
-            //  B->update_moves_stats(move, depth, history);
-
-            alpha = beta;
-            hash_type = HashType.Beta;
-            break outer;
-          }
+          alpha = beta;
+          hash_type = HashType.Beta;
+          break;
         }
       }
     }
@@ -287,13 +275,12 @@ outer:
 
     // Looking all captures moves
 
-    auto ml = undo.ml;
-    ml.clear();
-    B.generate!1(ml);
-    ml.value_moves(B, undo, history); // TODO: add qs ordering
+    auto ms = undo.ms;
+    ms.init(true);
 
-    foreach (Move move; ml)
+    foreach (Move move; ms)
     {
+      if (move.is_empty) break;
       if (!B.make(move, undo)) continue;
 
       int val = -qs(-beta, -alpha);
@@ -318,10 +305,10 @@ outer:
           history[color][i][j] >>= 1;
     }
 
-    if (undo.killer[0] != move)
+    if (undo.ms.killer[0] != move)
     {
-      undo.killer[1] = undo.killer[0];
-      undo.killer[0] = move;
+      undo.ms.killer[1] = undo.ms.killer[0];
+      undo.ms.killer[0] = move;
     }
   }
 

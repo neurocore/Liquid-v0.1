@@ -32,8 +32,7 @@ class Reader : Solver
 struct Undo // Alpha-beta-like node state
 {
   State state = State.init;
-  MoveList ml;
+  MoveSeries ms;
   // Val pst;
   Move curr, best;
-  Move[2] killer;
 }
