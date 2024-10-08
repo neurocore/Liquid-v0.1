@@ -25,6 +25,16 @@ Rays k_offset =
 Rays diag_offset = [[-1,-1], [-1, 1], [1,-1], [1, 1]];
 Rays rook_offset = [[-1, 0], [0, 1], [1, 0], [0,-1]];
 
+// front_one  front  att_span  att_rear  isolator  psupport
+//
+//   ---       -x-     x-x       ---       x-x       ---
+//   -x-       -x-     x-x       ---       x-x       ---
+//   -O-       -O-     -O-       xOx       xOx       xOx
+//   ---       ---     ---       x-x       x-x       x-x
+//   ---       ---     ---       x-x       x-x       ---
+        
+// isolator = att_span | att_rear
+// psupport = rank & isolator
 
 final class Table
 {
@@ -38,7 +48,9 @@ final class Table
     front_one_.zeros;
     front_.zeros;
     att_span_.zeros;
-    adj_files_.zeros;
+    att_rear_.zeros;
+    psupport_.zeros;
+    isolator_.zeros;
     
     init_piece(WP, wp_offset);
     init_piece(BP, bp_offset);
@@ -75,6 +87,9 @@ final class Table
       front_[1][sq] = Empty;
       for (u64 bb = sq.bit >> 8; bb; bb >>= 8) front_[0][sq] |= bb;
       for (u64 bb = sq.bit << 8; bb; bb <<= 8) front_[1][sq] |= bb;
+
+      if (sq.file > 0) isolator_[sq] |= file_bb[sq.file - 1];
+      if (sq.file < 7) isolator_[sq] |= file_bb[sq.file + 1];
     }
 
     foreach (SQ sq; A1 .. SQ.size)
@@ -85,8 +100,12 @@ final class Table
       att_span_[1][sq]  = file(sq) > 0 ? front_[1][sq.sub(1)] : Empty;
       att_span_[1][sq] |= file(sq) < 7 ? front_[1][sq.add(1)] : Empty;
 
-      adj_files_[sq]  = file(sq) > 0 ? file_bb[file(sq) - 1] : Empty;
-      adj_files_[sq] |= file(sq) < 7 ? file_bb[file(sq) + 1] : Empty;
+      att_rear_[0][sq] = att_span_[0][sq] ^ isolator_[sq];
+      att_rear_[1][sq] = att_span_[1][sq] ^ isolator_[sq];
+
+      u64 adj = rank_bb[sq.rank] & isolator_[sq];
+      psupport_[0][sq] = adj | att_[WP][sq];
+      psupport_[1][sq] = adj | att_[BP][sq];
     }
 
     foreach (SQ i; A1 .. SQ.size)
@@ -124,7 +143,9 @@ static:
   u64 front_one(Color color, SQ j) { return front_one_[color][j]; }
   u64 front(Color color, SQ j)     { return front_[color][j]; }
   u64 att_span(Color color, SQ j)  { return att_span_[color][j]; }
-  u64 adj_files(SQ j)              { return adj_files_[j]; }
+  u64 att_rear(Color color, SQ j)  { return att_rear_[color][j]; }
+  u64 psupport(Color color, SQ j)  { return psupport_[color][j]; }
+  u64 isolator(SQ j)               { return isolator_[j]; }
 
 private:
   void init_piece(Piece piece, Rays rays, bool slider = false)
@@ -157,5 +178,7 @@ private:
   u64[SQ.size + 2][Color.size] front_one_;
   u64[SQ.size + 2][Color.size] front_;
   u64[SQ.size + 2][Color.size] att_span_;
-  u64[SQ.size + 2] adj_files_;
+  u64[SQ.size + 2][Color.size] att_rear_;
+  u64[SQ.size + 2][Color.size] psupport_;
+  u64[SQ.size + 2] isolator_;
 }

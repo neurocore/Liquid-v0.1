@@ -1,10 +1,11 @@
 module board;
+import std.algorithm : max;
 import std.array, std.ascii, std.string;
 import std.math.algebraic, std.conv;
 import bitboard, square, consts;
 import eval, movelist, types, piece;
 import solver, app, moves, utils;
-import hash, magics, tables;
+import hash, magics, tables, vals;
 
 struct State // 12 bytes
 {
@@ -48,6 +49,20 @@ class Board
     return E.eval(this);
   }
 
+  int phase(Color c) const
+  {
+    u64 queens = piece[BQ.of(c)];
+    u64 rooks  = piece[BR.of(c)];
+    u64 lights = piece[BN.of(c)] | piece[BB.of(c)];
+
+    int phase = Phase.Total
+              - Phase.Queen * popcnt(queens)
+              - Phase.Rook  * popcnt(rooks)
+              - Phase.Light * popcnt(lights);
+
+    return max(phase, 0);
+  }
+
   Color to_move() const
   {
     return color;
@@ -72,9 +87,9 @@ class Board
   {
     const Color c = cast(Color)(color ^ opp);
 
-    if (Table.atts(BN.apply(c), king) & piece[WN ^ c]) return true; // Knights
-    if (Table.atts(BP.apply(c), king) & piece[WP ^ c]) return true; // Pawns
-    if (Table.atts(BK.apply(c), king) & piece[WK ^ c]) return true; // King
+    if (Table.atts(BN.of(c), king) & piece[WN ^ c]) return true; // Knights
+    if (Table.atts(BP.of(c), king) & piece[WP ^ c]) return true; // Pawns
+    if (Table.atts(BK.of(c), king) & piece[WK ^ c]) return true; // King
 
     if (b_att(o, king) & (piece[WB ^ c] | piece[WQ ^ c])) return true; // Bishops & queens
     if (r_att(o, king) & (piece[WR ^ c] | piece[WQ ^ c])) return true; // Rooks & queens

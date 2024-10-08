@@ -33,6 +33,7 @@ struct Pos
   //enum Init = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
   //enum Init = "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10";
   enum Init = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  enum Fine = "8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - -";
 }
 
 struct Tune
@@ -61,10 +62,10 @@ struct Tune
            ~ "Doubled:14 "
            ~ "Isolated:10 "
            ~ "Hole:10 "
-           ~ "NMob:2 "
-           ~ "BMob:2 "
-           ~ "RMob:2 "
-           ~ "QMob:1 "
+           ~ "NMob:64 "
+           ~ "BMob:64 "
+           ~ "RMob:48 "
+           ~ "QMob:4 "
            ~ "BishopPair:13 "
            ~ "BadBishop:38 "
            ~ "KnightOutpost:10 "

@@ -1,7 +1,7 @@
 module app;
 import std.stdio;
 
-enum Mode { Game, Bench, Tune };
+enum Mode { Game, Bench, Tuning };
 Mode mode = Mode.Game;
 
 void sayf(Mode m = Mode.Game, Char, A...)(Char[] fmt, A args)

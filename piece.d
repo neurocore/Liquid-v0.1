@@ -21,13 +21,13 @@ string toString(PieceType pt)
 {
   switch (pt)
   {
-    case PieceType.Pawn:   return "p";
-    case PieceType.Knight: return "n";
-    case PieceType.Bishop: return "b";
-    case PieceType.Rook:   return "r";
-    case PieceType.Queen:  return "q";
-    case PieceType.King:   return "k";
-    default:               return "";
+    case Pawn:   return "p";
+    case Knight: return "n";
+    case Bishop: return "b";
+    case Rook:   return "r";
+    case Queen:  return "q";
+    case King:   return "k";
+    default:     return "";
   }
 }
 
@@ -89,7 +89,7 @@ Piece opp(const Piece p)
   return cast(Piece) (p ^ 1);
 }
 
-Piece apply(const Piece p, const Color c)
+Piece of(const Piece p, const Color c)
 {
   return cast(Piece) (p ^ (cast(int)c));
 }

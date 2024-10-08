@@ -12,7 +12,7 @@ void main(string[] args)
     switch(cmd)
     {
       case "bench", "b": if (args.length > 2) mode = Mode.Bench; break;
-      case "tune", "t": mode = Mode.Tune; break;
+      case "tune", "t": mode = Mode.Tuning; break;
       default: break;
     }
   }

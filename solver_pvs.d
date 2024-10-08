@@ -4,7 +4,7 @@ import std.algorithm: min, max;
 import types, solver, movelist;
 import timer, board, moves, gen;
 import consts, engine, piece;
-import app, hash, eval, hash;
+import app, hash, eval, eval_smart;
 
 class SolverPVS : Solver
 {
