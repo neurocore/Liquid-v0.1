@@ -51,6 +51,7 @@ final class Table
     att_rear_.zeros;
     psupport_.zeros;
     isolator_.zeros;
+    kingzone_.zeros;
     
     init_piece(WP, wp_offset);
     init_piece(BP, bp_offset);
@@ -90,6 +91,9 @@ final class Table
 
       if (sq.file > 0) isolator_[sq] |= file_bb[sq.file - 1];
       if (sq.file < 7) isolator_[sq] |= file_bb[sq.file + 1];
+
+      kingzone_[0][sq] = (att_[BK][sq] | (att_[BK][sq] >> 8)) ^ sq.bit;
+      kingzone_[1][sq] = (att_[WK][sq] | (att_[WK][sq] << 8)) ^ sq.bit;
     }
 
     foreach (SQ sq; A1 .. SQ.size)
@@ -146,6 +150,7 @@ static:
   u64 att_rear(Color color, SQ j)  { return att_rear_[color][j]; }
   u64 psupport(Color color, SQ j)  { return psupport_[color][j]; }
   u64 isolator(SQ j)               { return isolator_[j]; }
+  u64 kingzone(Color color, SQ j)  { return kingzone_[color][j]; }
 
 private:
   void init_piece(Piece piece, Rays rays, bool slider = false)
@@ -181,4 +186,5 @@ private:
   u64[SQ.size + 2][Color.size] att_rear_;
   u64[SQ.size + 2][Color.size] psupport_;
   u64[SQ.size + 2] isolator_;
+  u64[SQ.size + 2][Color.size] kingzone_;
 }

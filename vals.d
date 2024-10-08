@@ -73,16 +73,16 @@ struct Vals
     return this;
   }
 
-  Vals opOpAssign(string op)(int k) if (op == "*")
+  Vals opOpAssign(string op)(int k)
   {
     final switch(op)
     {
-      case "+":
+      case "*":
         this.op *= k;
         this.eg *= k;
         break;
 
-      case "-":
+      case "/":
         this.op /= k;
         this.eg /= k;
         break;

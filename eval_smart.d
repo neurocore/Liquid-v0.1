@@ -4,8 +4,53 @@ import eval, tables, piece, square, consts;
 import app, board, bitboard, types, utils;
 import vals;
 
+enum AttWeight { Light = 2, Rook = 3, Queen = 5 };
+
+const int[100] safety_table =
+[
+    0,   0,   1,   2,   3,   5,   7,   9,  12,  15,
+   18,  22,  26,  30,  35,  39,  44,  50,  56,  62,
+   68,  75,  82,  85,  89,  97, 105, 113, 122, 131,
+  140, 150, 169, 180, 191, 202, 213, 225, 237, 248,
+  260, 272, 283, 295, 307, 319, 330, 342, 354, 366,
+  377, 389, 401, 412, 424, 436, 448, 459, 471, 483,
+  494, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+  500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+  500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+  500, 500, 500, 500, 500, 500, 500, 500, 500, 500
+];
+
+struct EvalInfo
+{
+  int[Color.size] att_weight;
+  int[Color.size] att_count;
+
+  void clear()
+  {
+    att_weight.zeros;
+    att_count.zeros;
+  }
+
+  void add_attack(Color col, AttWeight amount, int count = 1)
+  {
+    att_weight[col] += count * amount;
+    att_count[col] += count;
+  }
+
+  int king_safety(Color col) const
+  {
+    return att_count[col] > 2 ? safety_table[att_weight[col]] : 0;
+  }
+
+  int king_safety() const
+  {
+    return king_safety(White) - king_safety(Black);
+  }
+}
+
 class EvalSmart : Eval
 {
+  EvalInfo ei;
   int[SQ.size][Color.size] candidate, passer, supported;
 
   this(string tune = Tune.Def)
@@ -199,11 +244,14 @@ class EvalSmart : Eval
   // + 25=23 rook open files
   // + 78=26 tapered eval
 
-  // - 88=24 king safety
-  // - 26=26 tropism
+  // [king safety]
+  // + 78=26 attacks counts
+  // - 26=26 pawn shield
+  // - 26=26 tropism to king
+  // - 34=17 pawn storm
+
   // - 57=25 xrays & pins
   // - 46=22 forks
-
   // - 35=19 pawns doubled, blocked, isolated, holes
   // - 24=16 contact check
   // - 34=14 bad rook
@@ -213,8 +261,9 @@ class EvalSmart : Eval
   // ? space
   // ? connectivity
 
-  override int eval(const Board B) const
+  override int eval(const Board B)
   {
+    ei.clear();
     int val = 0;
     
     for (int i = 0; i < BK; i++)
@@ -224,23 +273,26 @@ class EvalSmart : Eval
     }
 
     val += evaluate!White(B) - evaluate!Black(B);
+    val += ei.king_safety();
+
     return (B.color == White ? val : -val) + term[Tempo];
   }
 
-  private int evaluate(Color col)(const Board B) const
+  private int evaluate(Color col)(const Board B)
   {
     Vals vals;
     vals += evaluateP!col(B);
-    vals += evaluateK!col(B);
+    vals += evaluateN!col(B);
     vals += evaluateB!col(B);
     vals += evaluateR!col(B);
     vals += evaluateQ!col(B);
+    vals += evaluateK!col(B);
 
     int phase = B.phase(col);
     return vals.tapered(phase);
   }
 
-  private Vals evaluateP(Color col)(const Board B) const
+  private Vals evaluateP(Color col)(const Board B)
   {
     Piece p = to_piece(Pawn, col);
     Vals vals;
@@ -273,7 +325,7 @@ class EvalSmart : Eval
     return vals;
   }
 
-  private Vals evaluateN(Color col)(const Board B) const
+  private Vals evaluateN(Color col)(const Board B)
   {
     Piece p = to_piece(Knight, col);
     Vals vals;
@@ -281,6 +333,12 @@ class EvalSmart : Eval
     {
       const SQ sq = bitscan(bb);
       const u64 att = B.attack(p, sq);
+
+      // king attacks
+
+      const SQ ksq = bitscan(B.piece[WK.of(col)]);
+      const u64 katt = att & Table.kingzone(col.opp, ksq);
+      ei.add_attack(col, AttWeight.Light, popcnt(katt));
 
       // pst & mobility
 
@@ -294,7 +352,7 @@ class EvalSmart : Eval
     return vals;
   }
 
-  private Vals evaluateB(Color col)(const Board B) const
+  private Vals evaluateB(Color col)(const Board B)
   {
     Piece p = to_piece(Bishop, col);
     Vals vals;
@@ -302,6 +360,12 @@ class EvalSmart : Eval
     {
       const SQ sq = bitscan(bb);
       const u64 att = B.attack(p, sq);
+
+      // king attacks
+
+      const SQ ksq = bitscan(B.piece[WK.of(col)]);
+      const u64 katt = att & Table.kingzone(col.opp, ksq);
+      ei.add_attack(col, AttWeight.Light, popcnt(katt));
 
       // pst & mobility
 
@@ -315,7 +379,7 @@ class EvalSmart : Eval
     return vals;
   }
 
-  private Vals evaluateR(Color col)(const Board B) const
+  private Vals evaluateR(Color col)(const Board B)
   {
     Piece p = to_piece(Rook, col);
     Vals vals;
@@ -323,6 +387,12 @@ class EvalSmart : Eval
     {
       const SQ sq = bitscan(bb);
       const u64 att = B.attack(p, sq);
+
+      // king attacks
+
+      const SQ ksq = bitscan(B.piece[WK.of(col)]);
+      const u64 katt = att & Table.kingzone(col.opp, ksq);
+      ei.add_attack(col, AttWeight.Rook, popcnt(katt));
 
       // pst & mobility
 
@@ -358,7 +428,7 @@ class EvalSmart : Eval
     return vals;
   }
 
-  private Vals evaluateQ(Color col)(const Board B) const
+  private Vals evaluateQ(Color col)(const Board B)
   {
     Piece p = to_piece(Queen, col);
     Vals vals;
@@ -366,6 +436,12 @@ class EvalSmart : Eval
     {
       const SQ sq = bitscan(bb);
       const u64 att = B.attack(p, sq);
+
+      // king attacks
+
+      const SQ ksq = bitscan(B.piece[WK.of(col)]);
+      const u64 katt = att & Table.kingzone(col.opp, ksq);
+      ei.add_attack(col, AttWeight.Queen, popcnt(katt));
 
       // pst & mobility
 
@@ -376,7 +452,7 @@ class EvalSmart : Eval
     return vals;
   }
 
-  private Vals evaluateK(Color col)(const Board B) const
+  private Vals evaluateK(Color col)(const Board B)
   {
     Piece p = to_piece(King, col);
     Vals vals;

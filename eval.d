@@ -49,7 +49,7 @@ class Eval
   int[Term.size] term;
   int[Piece.size] score;
   Vals[SQ.size][Piece.size] pst;
-  abstract int eval(const Board B) const;
+  abstract int eval(const Board B);
   abstract void init();
 
   string get() const
