@@ -19,12 +19,15 @@ enum Term
   RookFileOp,
   QueenCenterOp, QueenCenterEg, QueenBackRank,
   KingFile, KingRank, KingCenterEg,
-  Doubled, Isolated, Hole,
+  Doubled, Isolated, Backward,
   NMob, BMob, RMob, QMob,
   BishopPair, BadBishop,
   KnightOutpost,
   RookSemi, RookOpen, Rook7thOp, Rook7thEg, BadRook,
+  KnightFork, BishopFork,
+  KnightAdj, RookAdj, EarlyQueen,
   ContactCheckR, ContactCheckQ,
+  Shield1, Shield2,
   Candidate, CandidateK, Passer, PasserK, PasserSupport, PasserSupportK,
   Tempo,
   size
@@ -43,6 +46,8 @@ const int[8] KLine = [-3, -1, +0, +1, +1, +0, -1, -3];
 const int[8] KFile = [+3, +4, +2, +0, +0, +2, +4, +3];
 const int[8] KRank = [+1, +0, -2, -3, -4, -5, -6, -7];
 
+// from CPW-Engine
+const int[9] PAdj = [-5, -4, -3, -2, -1, 0, +1, +2, +3];
 
 class Eval
 {

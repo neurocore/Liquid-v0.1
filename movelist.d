@@ -100,6 +100,10 @@ class MoveList
   // not clearing ep square: ed Qd1 Kb8 Bb2 (c5d4 - illegal)
   // 2k2b1r/1p3ppp/q4n2/2pr4/Pp1Pp2P/1N2P1P1/1PQ2PR1/R1B1K3 b - d3 0 19
 
+  // [20241009]
+  // showing here mate in 2, but there is not (Re1+ missing passer)
+  // 8/5R2/5p2/1p6/5k2/1P6/4r1p1/6K1 b - - 1 46 
+
 
   void value_moves(bool att = false)(ref Board board/*, ref u64[64][64][2] history*/)
   {

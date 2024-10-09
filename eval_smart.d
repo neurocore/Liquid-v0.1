@@ -4,6 +4,7 @@ import eval, tables, piece, square, consts;
 import app, board, bitboard, types, utils;
 import vals;
 
+// from Toga, i suppose
 enum AttWeight { Light = 2, Rook = 3, Queen = 5 };
 
 const int[100] safety_table =
@@ -52,6 +53,7 @@ class EvalSmart : Eval
 {
   EvalInfo ei;
   int[SQ.size][Color.size] candidate, passer, supported;
+  int[9] n_adj, r_adj;
 
   this(string tune = Tune.Def)
   {
@@ -65,7 +67,15 @@ class EvalSmart : Eval
 
   override void init()
   {
-    // Setting piece scores  //////////////////////////////////////
+    // Building piece adjustments arrays //////////////////////////
+
+    for (int i = 0; i < 9; i++)
+    {
+      n_adj[i] = term[KnightAdj] * PAdj[i];
+      r_adj[i] = -term[RookAdj] * PAdj[i];
+    }
+
+    // Setting material scores  ///////////////////////////////////
 
     score[WP] = 100;
     score[WN] = term[MatKnight];
@@ -243,21 +253,28 @@ class EvalSmart : Eval
   // + 25=23 rook on 7th
   // + 25=23 rook open files
   // + 78=26 tapered eval
+  // + 46=22 forks
+  // + 35=19 pawns doubled, isolated, backward
+  // + 14=18 rook/knight adjustments
+  // + 37=29 early queen penalty
 
   // [king safety]
   // + 78=26 attacks counts
-  // - 26=26 pawn shield
+  // + 26=26 pawn shield
   // - 26=26 tropism to king
   // - 34=17 pawn storm
 
   // - 57=25 xrays & pins
-  // - 46=22 forks
-  // - 35=19 pawns doubled, blocked, isolated, holes
   // - 24=16 contact check
+  // - 34=14 blockage patterns
   // - 34=14 bad rook
   // - 33= 9 bad bishop
   // - 53= 5 outposts
 
+  // [Further improvements]
+  //
+  // ? soft mobility - don't count squares attacked by enemy pawns
+  // ? virtual piece placement (like in Critter)
   // ? space
   // ? connectivity
 
@@ -272,24 +289,23 @@ class EvalSmart : Eval
       val += score[i] * popcnt(bb);
     }
 
-    val += evaluate!White(B) - evaluate!Black(B);
+    val += evaluate(B); // collecting ei
     val += ei.king_safety();
 
     return (B.color == White ? val : -val) + term[Tempo];
   }
 
-  private int evaluate(Color col)(const Board B)
+  private int evaluate(const Board B)
   {
     Vals vals;
-    vals += evaluateP!col(B);
-    vals += evaluateN!col(B);
-    vals += evaluateB!col(B);
-    vals += evaluateR!col(B);
-    vals += evaluateQ!col(B);
-    vals += evaluateK!col(B);
+    vals += evaluateP!White(B) - evaluateP!Black(B);
+    vals += evaluateN!White(B) - evaluateN!Black(B);
+    vals += evaluateB!White(B) - evaluateB!Black(B);
+    vals += evaluateR!White(B) - evaluateR!Black(B);
+    vals += evaluateQ!White(B) - evaluateQ!Black(B);
+    vals += evaluateK!White(B) - evaluateK!Black(B);
 
-    int phase = B.phase(col);
-    return vals.tapered(phase);
+    return vals.tapered(B.phase);
   }
 
   private Vals evaluateP(Color col)(const Board B)
@@ -304,6 +320,34 @@ class EvalSmart : Eval
       // pst
 
       vals += pst[p][sq];
+
+      // isolated
+
+      if (!(Table.isolator(sq) & B.piece[p]))
+      {
+        vals -= Vals.both(term[Isolated]);
+      }
+
+      // doubled
+
+      u64 back = Table.front(col.opp, sq) & B.piece[p];
+      u64 fore = Table.front(col, sq) & B.piece[p];
+
+      if (back && !fore)
+      {
+        vals -= Vals.both(popcnt(back) * term[Doubled]);
+      }
+
+      // backward
+
+      bool developed = col ? sq.rank > 3 : sq.rank < 4;
+
+      if (!developed
+      &&  !(Table.att_span(col.opp, sq) & B.piece[p])
+      &&    Table.att_span(col, sq) & B.piece[p.opp])
+      {
+        vals -= Vals.both(term[Backward]);
+      }
 
       // passers
 
@@ -345,6 +389,19 @@ class EvalSmart : Eval
       vals += pst[p][sq];
       vals += Vals.both(term[NMob] * popcnt(att) / 32);
 
+      // adjustments
+
+      int pawns = popcnt(B.piece[BP.of(col)]);
+      vals += Vals.both(n_adj[pawns]);
+
+      // forks
+
+      u64 fork = att & (B.piece[WR.of(col)]
+                      | B.piece[WQ.of(col)]
+                      | B.piece[WK.of(col)]);
+
+      if (rlsb(fork)) vals += Vals.both(term[KnightFork]);
+
       // outposts
 
       // TODO
@@ -371,6 +428,14 @@ class EvalSmart : Eval
 
       vals += pst[p][sq];
       vals += Vals.both(term[BMob] * popcnt(att) / 32);
+
+      // forks
+
+      u64 fork = att & (B.piece[WR.of(col)]
+                      | B.piece[WQ.of(col)]
+                      | B.piece[WK.of(col)]);
+
+      if (rlsb(fork)) vals += Vals.both(term[BishopFork]);
     }
 
     // bishop pair
@@ -399,6 +464,11 @@ class EvalSmart : Eval
       vals += pst[p][sq];
       vals += Vals.both(term[RMob] * popcnt(att) / 32);
 
+      // adjustments
+
+      int pawns = popcnt(B.piece[BP.of(col)]);
+      vals += Vals.both(r_adj[pawns]);
+
       // rook on 7th
 
       u64 own_pawns = B.piece[to_piece(Pawn, p.color)];
@@ -411,7 +481,7 @@ class EvalSmart : Eval
         SQ opp_king = bitscan(B.piece[to_piece(King, p.color.opp)]);
 
         if (opp_king.rank == king_rank || popcnt(opp_pawns) > 1)
-          vals += Vals.as_op(term[Rook7thOp]);
+          vals += Vals(term[Rook7thOp], term[Rook7thEg]);
       }
 
       // rook on open/semi-files
@@ -446,7 +516,29 @@ class EvalSmart : Eval
       // pst & mobility
 
       vals += pst[p][sq];
-      vals += Vals.as_eg(term[QMob] * popcnt(att) / 32);
+      vals += Vals.both(term[QMob] * popcnt(att) / 32);
+
+      // early queen
+
+      u64 undeveloped;
+      if (col)
+      {
+        if (sq.rank > 1)
+        {
+          undeveloped  = B.piece[WN] & ([B1, G1].bits);
+          undeveloped |= B.piece[WB] & ([C1, F1].bits);
+        }
+      }
+      else
+      {
+        if (sq.rank < 6)
+        {
+          undeveloped  = B.piece[BN] & ([B8, G8].bits);
+          undeveloped |= B.piece[BB] & ([C8, F8].bits);
+        }
+      }
+      const int penalty = popcnt(undeveloped);
+      vals -= Vals.both(penalty * term[EarlyQueen]);
     }
 
     return vals;
@@ -463,6 +555,35 @@ class EvalSmart : Eval
       // pst
 
       vals += pst[p][sq];
+
+      // pawn shield
+
+      u64 pawns = B.piece[BP.of(col)];
+      u64 row1 = col == White ? Rank2 : Rank7;
+      u64 row2 = col == White ? Rank3 : Rank6;
+
+      if (sq.file > 4)
+      {
+        if      (pawns & row1 & FileF) vals += Vals.as_op(term[Shield1]);
+        else if (pawns & row2 & FileF) vals += Vals.as_op(term[Shield2]);
+
+        if      (pawns & row1 & FileG) vals += Vals.as_op(term[Shield1]);
+        else if (pawns & row2 & FileG) vals += Vals.as_op(term[Shield2]);
+
+        if      (pawns & row1 & FileH) vals += Vals.as_op(term[Shield1]);
+        else if (pawns & row2 & FileH) vals += Vals.as_op(term[Shield2]);
+      }
+      else
+      {
+        if      (pawns & row1 & FileA) vals += Vals.as_op(term[Shield1]);
+        else if (pawns & row2 & FileA) vals += Vals.as_op(term[Shield2]);
+
+        if      (pawns & row1 & FileB) vals += Vals.as_op(term[Shield1]);
+        else if (pawns & row2 & FileB) vals += Vals.as_op(term[Shield2]);
+
+        if      (pawns & row1 & FileC) vals += Vals.as_op(term[Shield1]);
+        else if (pawns & row2 & FileC) vals += Vals.as_op(term[Shield2]);
+      }
     }
 
     return vals;

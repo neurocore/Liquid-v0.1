@@ -49,11 +49,12 @@ class Board
     return E.eval(this);
   }
 
-  int phase(Color c) const
+  int phase() const
   {
-    u64 queens = piece[BQ.of(c)];
-    u64 rooks  = piece[BR.of(c)];
-    u64 lights = piece[BN.of(c)] | piece[BB.of(c)];
+    u64 queens = piece[BQ] | piece[WQ];
+    u64 rooks  = piece[BR] | piece[WR];
+    u64 lights = piece[BN] | piece[WN]
+               | piece[BB] | piece[WB];
 
     int phase = Phase.Total
               - Phase.Queen * popcnt(queens)

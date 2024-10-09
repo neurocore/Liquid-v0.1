@@ -4,12 +4,18 @@ import std.format;
 enum Phase
 {
   Light = 1, Rook = 2, Queen = 4, Endgame = 7,
-  Total = Light * 4 + Rook * 2 + Queen
+  Total = 2 * (Light * 4 + Rook * 2 + Queen)
 };
 
 struct Vals
 {
   int op, eg;
+
+  this(int op, int eg)
+  {
+    this.op = op;
+    this.eg = eg;
+  }
 
   static Vals both(int x)  { return Vals(x, x); }
   static Vals as_op(int x) { return Vals(x, 0); }
@@ -20,24 +26,24 @@ struct Vals
     return Vals(-op, -eg);
   }
 
-  Vals opAdd(Vals vals)
+  Vals opBinary(string oper)(Vals vals)
   {
-    return Vals(op + vals.op, eg + vals.eg);
+    final switch(oper)
+    {
+      case "+": return Vals(op + vals.op, eg + vals.eg);
+      case "-": return Vals(op - vals.op, eg - vals.eg);
+    }
+    return this;
   }
 
-  Vals opSub(Vals vals)
+  Vals opBinary(string oper)(int k)
   {
-    return Vals(op - vals.op, eg - vals.eg);
-  }
-
-  Vals opMul(int k)
-  {
-    return Vals(op * k, eg * k);
-  }
-
-  Vals opDiv(int k)
-  {
-    return Vals(op / k, eg / k);
+    final switch(oper)
+    {
+      case "*": return Vals(op * k, eg * k);
+      case "/": return Vals(op / k, eg / k);
+    }
+    return this;
   }
 
   bool opEquals(Vals vals)
@@ -52,39 +58,39 @@ struct Vals
 
   void opAssign(Vals vals)
   {
-    this.op = vals.op;
-    this.eg = vals.eg;
+    op = vals.op;
+    eg = vals.eg;
   }
 
-  Vals opOpAssign(string op)(Vals vals)
+  Vals opOpAssign(string oper)(Vals vals)
   {
-    final switch(op)
+    final switch(oper)
     {
       case "+":
-        this.op += vals.op;
-        this.eg += vals.eg;
+        op += vals.op;
+        eg += vals.eg;
         break;
 
       case "-":
-        this.op -= vals.op;
-        this.eg -= vals.eg;
+        op -= vals.op;
+        eg -= vals.eg;
         break;
     }
     return this;
   }
 
-  Vals opOpAssign(string op)(int k)
+  Vals opOpAssign(string oper)(int k)
   {
-    final switch(op)
+    final switch(oper)
     {
       case "*":
-        this.op *= k;
-        this.eg *= k;
+        op *= k;
+        eg *= k;
         break;
 
       case "/":
-        this.op /= k;
-        this.eg /= k;
+        op /= k;
+        eg /= k;
         break;
     }
     return this;
