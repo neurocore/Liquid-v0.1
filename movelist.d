@@ -249,7 +249,11 @@ class MoveSeries
 
       case Step.Killers:
         //writeln("Step.Killers");
-        if (!ml.empty) return ml.get_move(Order.Killer2);
+        if (!ml.empty)
+        {
+          Move mv = ml.get_move(Order.Killer2);
+          if (!mv.is_empty) return mv;
+        }
         step++;
         goto case;
 
@@ -263,14 +267,23 @@ class MoveSeries
 
       case Step.Quiets:
         //writeln("Step.Quiets");
-        if (!ml.empty) return ml.get_move();
+
+        if (!ml.empty)
+        {
+          Move mv = ml.get_move(Order.Quiet);
+          if (!mv.is_empty) return mv;
+        }
         ml.reveal_pocket();
         step++;
         goto case;
 
       case Step.BadCaps:
         //writeln("Step.BadCaps");
-        if (!ml.empty) return ml.get_move(Order.BadCap);
+        if (!ml.empty)
+        {
+          Move mv = ml.get_move();
+          if (!mv.is_empty) return mv;
+        }
         step++;
         goto default;
 

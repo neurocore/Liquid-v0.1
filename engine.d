@@ -113,6 +113,8 @@ class Engine
 
   void perft(int depth = 1)
   {
+    S[0].set(B);
+    S[1].set(B);
     S[0].perft(depth);
     S[1].perft(depth);
   }

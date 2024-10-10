@@ -2,6 +2,7 @@ module utils;
 import std.stdio, std.format, std.conv;
 import std.traits, std.typecons, std.regex;
 import std.array, std.string, std.algorithm;
+import std.math: sqrt;
 import app;
 
 alias Sink = void delegate(const(char)[]);
@@ -199,3 +200,5 @@ R compare(T, R)(T a, T b, R less, R equal, R more)
 {
   return (a < b ? less : (a > b ? more : equal));
 }
+
+int sqrt(int x) { return cast(int)sqrt(cast(float)x); }

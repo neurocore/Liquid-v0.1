@@ -248,6 +248,10 @@ class EvalSmart : Eval
   // + mobility
   // + tempo
   //
+
+  // Something strange with undeveloped passers
+  //  maybe need to implement rule of square
+
   // + 58=30 passers & candidates
   // + 15=23 bishop pair
   // + 25=23 rook on 7th
@@ -521,7 +525,7 @@ class EvalSmart : Eval
       // early queen
 
       u64 undeveloped;
-      if (col)
+      if (col == White)
       {
         if (sq.rank > 1)
         {
@@ -538,7 +542,7 @@ class EvalSmart : Eval
         }
       }
       const int penalty = popcnt(undeveloped);
-      vals -= Vals.both(penalty * term[EarlyQueen]);
+      vals -= Vals.as_op(penalty * term[EarlyQueen]);
     }
 
     return vals;
