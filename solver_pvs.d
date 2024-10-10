@@ -3,7 +3,7 @@ import std.stdio, std.format;
 import std.algorithm: min, max;
 import types, solver, movelist;
 import timer, board, moves, gen;
-import consts, engine, piece;
+import consts, engine, piece, utils;
 import app, hash, eval, eval_smart;
 
 class SolverPVS : Solver
@@ -58,8 +58,6 @@ class SolverPVS : Solver
 
     say("-- Perft ", depth);
     say(B);
-
-    //show_states(true);
 
     timer.start();
     auto ms = undo.ms;
@@ -144,6 +142,17 @@ class SolverPVS : Solver
     return best;
   }
 
+  // position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6 e1g1 f6e4 d2d4 b7b5 a4b3 d7d5 d4e5 c8e6 c2c3 f8c5 d1d3 e8g8 b1d2 f7f5 e5f6 f8f6 a2a4 b5b4 f3d4 c6e5 d3h3
+  // - enpassant doing incorrectly on board, "captured" pawn remains
+
+
+  // Improvements:
+  //
+  // + LMR +108 elo (1+1 h2h-20)
+  // + IID +50 elo (1+1 h2h-30)
+  // - Null Move Pruning
+  // - Hashing (fix garbage input)
+
   int pvs(int alpha, int beta, int depth)
   {
     if (depth <= 0) return qs(alpha, beta);
@@ -151,6 +160,7 @@ class SolverPVS : Solver
     if (time_lack()) return 0;
 
     const bool in_pv = (beta - alpha) > 1;
+    const bool in_check = B.in_check;
     HashType hash_type = HashType.Alpha;
     undo.best = Move.None;
     int val = ply - Val.Inf;
@@ -185,6 +195,21 @@ class SolverPVS : Solver
     //if (!B.is_allowed(hash_move)) hash_move = Move.None;
     auto hash_move = Move.None;
 
+    // 2. Internal Iterative Deepening
+
+    if (depth >= 3 && in_pv && hash_move == Move.None)
+    {
+      int new_depth = depth - 2;
+
+      int v = pvs(alpha, beta, new_depth);
+      //if (v <= alpha)
+      //  v = pvs(-Val.Inf, beta, new_depth);
+
+      if (!undo.best.is_empty)
+        if (B.is_allowed(undo.best))
+          hash_move = undo.best;
+    }
+
     // Looking all legal moves
 
     auto ms = undo.ms;
@@ -197,19 +222,30 @@ class SolverPVS : Solver
 
       legal++;
       int new_depth = depth - 1;
-      bool reduced = false;
+      int reduction = 0;
+
+      // LMR
+
+      if (!in_pv
+      &&  depth >= 4
+    // && !isNull
+      && !in_check
+      && !B.in_check
+      && !move.mt.is_attack)
+      {
+        reduction = cast(int)( sqrt(depth - 1) + sqrt(legal - 1) );
+      }
 
       if (legal == 1)
         val = -pvs(-beta, -alpha, new_depth);
       else
       {
-        val = -pvs(-alpha - 1, -alpha, new_depth);
+        val = -pvs(-alpha - 1, -alpha, new_depth - reduction);
+        if (val > alpha && reduction > 0)
+          val = -pvs(-alpha - 1, -alpha, new_depth);
         if (val > alpha && val < beta)
           val = -pvs(-beta, -alpha, new_depth);
       }
-
-      if (reduced && val >= beta)
-        val = -pvs(-beta, -alpha, new_depth + 1);
 
       B.unmake(move, undo);
 
@@ -254,7 +290,6 @@ class SolverPVS : Solver
 
     if (!legal)
     {
-      int in_check = B.in_check();
       return in_check > 0 ? val : 0; // contempt();
     }
 
