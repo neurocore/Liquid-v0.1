@@ -260,8 +260,11 @@ class Board
 
     if (cap != Piece.NOP) // capture
     {
-      if (p.pt() == Pawn && to == state.ep) mt = MT.Ep; // ep
-      else mt = cast(MT) (mt + MT.Cap); // cap || capprom
+      mt = cast(MT) (mt + MT.Cap); // cap || capprom
+    }
+    else if (p.pt() == Pawn && to == state.ep)
+    {
+      mt = MT.Ep; // ep
     }
     else
     {

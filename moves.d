@@ -107,6 +107,14 @@ bool is_ep(MT mt)     { return mt == MT.Ep; }
 bool is_pawn2(MT mt)  { return mt == MT.Pawn2; }
 bool is_castle(MT mt) { return mt == MT.KCastle || mt == MT.QCastle; }
 
+bool is_cap(Move move) { return is_cap(move.mt); }
+bool is_prom(Move move) { return is_prom(move.mt); }
+bool is_attack(Move move) { return is_attack(move.mt); }
+
+bool is_ep(Move move)     { return is_ep(move.mt); }
+bool is_pawn2(Move move)  { return is_pawn2(move.mt); }
+bool is_castle(Move move) { return is_castle(move.mt); }
+
 PieceType promoted(MT mt) { return cast(PieceType) (1 + (mt & 3)); }
 PieceType promoted(Move move) { return promoted(move.mt); }
 Piece promoted(MT mt, Color col) { return to_piece(promoted(mt), col); }

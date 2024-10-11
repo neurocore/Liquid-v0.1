@@ -27,9 +27,11 @@ class Hash
 
   this(int size_mb = HashTables.Size) { this.init(size_mb); }
   ~this() { table = null; }
+
   void clear()
   {
-    table[] = HashEntry.init;
+    foreach (ref he; table)
+      he = HashEntry.init;
     read = write = 0u;
   }
 

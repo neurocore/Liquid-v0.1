@@ -119,6 +119,8 @@ class SolverPVS : Solver
     max_ply = 0;
     nodes = 0;
 
+    H.clear();
+
     Move best = Move.None; 
     for (int depth = 1; depth <= Limits.Plies; depth++)
     {
@@ -141,10 +143,6 @@ class SolverPVS : Solver
     thinking = false;
     return best;
   }
-
-  // position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6 e1g1 f6e4 d2d4 b7b5 a4b3 d7d5 d4e5 c8e6 c2c3 f8c5 d1d3 e8g8 b1d2 f7f5 e5f6 f8f6 a2a4 b5b4 f3d4 c6e5 d3h3
-  // - enpassant doing incorrectly on board, "captured" pawn remains
-
 
   // Improvements:
   //
@@ -231,7 +229,7 @@ class SolverPVS : Solver
     // && !isNull
       && !in_check
       && !B.in_check
-      && !move.mt.is_attack)
+      && !move.is_attack)
       {
         reduction = cast(int)( sqrt(depth - 1) + sqrt(legal - 1) );
       }
@@ -257,9 +255,8 @@ class SolverPVS : Solver
 
         if (val >= beta)
         {
-          //int in_check = B.in_check();
-          //if (!is_cap_or_prom(move) && !in_check)
-          //  B->update_moves_stats(move, depth, history);
+          //if (!move.is_attack && !in_check)
+          //  update_moves_stats(B.color, move, depth, undo);
 
           alpha = beta;
           hash_type = HashType.Beta;

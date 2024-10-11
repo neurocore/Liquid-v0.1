@@ -151,6 +151,7 @@ public:
         moves = reader.get_phrase();
       }
 
+      // further work on recognizing moves lies on engine.do_move()
       Move[] the_moves = moves.split(" ").map!(x => Move(x)).array;
       return new Cmd_Pos(fen, the_moves);
     }
