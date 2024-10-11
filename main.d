@@ -24,7 +24,6 @@ void main(string[] args)
     //import std.conv;
     //import eval, utils;
     import hash, solver;
-    writeln("Order.BadCap = ", cast(i64)Order.BadCap);
     writeln("Undo.size = ", Undo.sizeof);
     writeln("HashEntry.size = ", HashEntry.sizeof);
     writeln(__traits(isPOD, State));

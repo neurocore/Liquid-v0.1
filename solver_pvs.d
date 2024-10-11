@@ -164,6 +164,8 @@ class SolverPVS : Solver
     int val = ply - Val.Inf;
     nodes++;
 
+    if (B.is_draw) return 0; // contempt();
+
     int legal = 0;
 
     // 0. Mate pruning

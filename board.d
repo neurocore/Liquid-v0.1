@@ -7,6 +7,12 @@ import eval, movelist, types, piece;
 import solver, app, moves, utils;
 import hash, magics, tables, vals;
 
+struct Key
+{
+  u64 hash;
+  bool irrev;
+}
+
 struct State // 12 bytes
 {
   align (1):
@@ -31,6 +37,7 @@ class Board
     foreach (x; A1 .. SQ.size) square[x] = Piece.NOP;
     color = White;
     state = State();
+    threefold = [];
   }
 
   Board dup() const
@@ -41,6 +48,7 @@ class Board
     foreach (x; A1 .. SQ.size) B.square[x] = square[x];
     B.color = color;
     B.state = state;
+    B.threefold = threefold.dup;
     return B;
   }
 
@@ -62,6 +70,48 @@ class Board
               - Phase.Light * popcnt(lights);
 
     return max(phase, 0);
+  }
+
+  bool is_draw() const
+  {
+    // Threefold repetition
+
+    if (threefold.length >= 5)
+    for (long i = threefold.length - 5; i >= 0; i -= 2)
+    {
+      const Key key = threefold[i];
+      if (key.hash == state.hash) return true; // 2nd is enough
+      if (key.irrev) break;
+    }
+
+    // Rule of fifty moves
+
+    if (state.fifty == 100) return true;
+
+    // Insufficient material
+
+    int total = popcnt(occ[0] | occ[1]);
+
+    if (total == 3)
+    {
+      u64 lights = piece[BN] | piece[WN] | piece[BB] | piece[WB];
+      if (lights) return true; // KLK
+    }
+    else if (total == 4)
+    {
+      if (popcnt(piece[BN] | piece[WN]) == 2) // KNNK, KNKN
+      {
+        return true;
+      }
+
+      if (only_one(piece[BN] | piece[BB]) // KLKL
+      &&  only_one(piece[WN] | piece[WB]))
+      {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   Color to_move() const
@@ -184,6 +234,7 @@ class Board
     // full move counter - no need
 
     state.bhash ^= hash_wtm[color];
+    threefold ~= Key(state.hash, true);
 
     return true;
   }
@@ -475,6 +526,7 @@ class Board
     const SQ to = move.to;
     const MT mt = move.mt;
     const Piece p = square[from];
+    bool irreversible = true;
 
     undo.state = state;
     undo++;
@@ -563,12 +615,16 @@ class Board
         remove(from);
         place(to, p);
 
-        if (p.be!Pawn) state.fifty = 0;
+        if (p.be!Pawn)
+          state.fifty = 0;
+        else
+          irreversible = false;
       }
     }
 
     color ^= 1;
     state.bhash ^= hash_wtm[0];
+    threefold ~= Key(state.hash, irreversible);
 
     if (in_check(1))
     {
@@ -608,6 +664,9 @@ class Board
     const SQ to = move.to;
     const MT mt = move.mt;
     const Piece p = square[to];
+
+    assert(threefold.length > 0);
+    threefold.popBack();
 
     color ^= 1;
 
@@ -851,4 +910,5 @@ public:
   u64[Color.size] occ;
   Piece[SQ.size] square;
   State state = State();
+  Key[] threefold;
 }

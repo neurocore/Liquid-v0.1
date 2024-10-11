@@ -24,10 +24,10 @@ immutable u32[64] bitscan64 =
   25, 14, 19,  9, 13,  8,  7,  6
 ];
 
-immutable u32[0xFFFF] LUT = () @safe pure nothrow
+immutable u32[0x10000] LUT = () @safe pure nothrow
 {
-  u32[0xFFFF] arr;
-  foreach (u16 i; 0 .. 0xFFFF)
+  u32[0x10000] arr;
+  foreach (u16 i; 0 .. 0x10000)
   {
     arr[i] = 0;
     u16 n = i;
@@ -50,6 +50,8 @@ u64 bits(SQ[] sqs)
 
 u64 lsb(u64 bb)  { return bb & (Empty - bb); }
 u64 rlsb(u64 bb) { return bb & (bb - Bit); }
+
+bool only_one(u64 bb) { return bb && !rlsb(bb); }
 
 u64 msb(u64 bb)
 {
