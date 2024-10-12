@@ -94,6 +94,32 @@ class MoveList
     add(Move(from, to, MT.NCapProm));
   }
 
+  void remove_move(Move move)
+  {
+    for (MoveVal * ptr = first; ptr < last; ++ptr)
+    {
+      if (ptr.move == move)
+      {
+        remove(ptr);
+        break;
+      }
+    }
+  }
+
+  void remove_moves(Move[2] moves)
+  {
+    for (MoveVal * ptr = first; ptr < last; ++ptr)
+    {
+      foreach (move; moves)
+      {
+        if (ptr.move == move)
+        {
+          remove(ptr);
+        }
+      }
+    }
+  }
+
   // r1bk2nQ/pppn3p/5p2/3q4/8/2B2N1P/PP3PP1/3RR1K1 b - - 1 23
   
   // [20241007]
@@ -193,7 +219,19 @@ class MoveSeries
   bool empty() const { return step == Step.Done; }
   void popFront() { ml.remove_curr(); }
 
-  // perft 6 - 119060302
+  void remove_hash_move()
+  {
+    if (!hash_mv.is_empty)
+    {
+      ml.remove_move(hash_mv);
+    }
+  }
+
+  void remove_hash_and_killers()
+  {
+    remove_hash_move();
+    ml.remove_moves(killer);
+  }
 
   Move front()
   {
@@ -209,7 +247,7 @@ class MoveSeries
         //writeln("Step.GenCaps");
         step++;
         B.generate!1(ml);
-        // TODO: remove hash move
+        remove_hash_move();
         ml.value_moves!1(*B);
         goto case;
 
@@ -261,7 +299,7 @@ class MoveSeries
         //writeln("Step.GenQuiets");
         step++;
         B.generate!0(ml);
-        // TODO: remove hash move and killers
+        remove_hash_and_killers();
         ml.value_moves!0(*B);
         goto case;
 

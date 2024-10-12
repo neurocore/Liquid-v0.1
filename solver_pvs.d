@@ -19,8 +19,11 @@ class SolverPVS : Solver
     H = new Hash;
   }
 
-  override void set(const Board board) { B = board.dup(); }
-  //override void stop() {}
+  override void set(const Board board)
+  {
+    B = board.dup();
+    H.clear();
+  }
 
   int ply() const @property { return cast(int)(undo - undos.ptr); }
 
@@ -119,7 +122,7 @@ class SolverPVS : Solver
     max_ply = 0;
     nodes = 0;
 
-    H.clear();
+    //H.clear();
 
     Move best = Move.None; 
     for (int depth = 1; depth < Limits.Plies; depth++)
@@ -148,12 +151,11 @@ class SolverPVS : Solver
   //
   // + LMR +108 elo (1+1 h2h-20)
   // + IID +50 elo (1+1 h2h-30)
+  // + Hashing +50 elo (1+1 h2h-20)
   // - Null Move Pruning
-  // - Hashing (fix garbage input)
 
   int pvs(int alpha, int beta, int depth)
   {
-    if (/*!in_check && */depth <= 0) return qs(alpha, beta);
     //check_input();
     if (time_lack()) return 0;
 
@@ -164,6 +166,7 @@ class SolverPVS : Solver
     undo.best = Move.None;
     nodes++;
 
+    if (!in_check && depth <= 0) return qs(alpha, beta);
     if (ply > 0 && B.is_draw) return 0; // contempt();
 
     int legal = 0;
@@ -197,8 +200,6 @@ class SolverPVS : Solver
     Move hash_move = H.probe(B.state.hash, alpha, beta, depth, 1 /*!in_pv*/);
     if (alpha == beta) return alpha;
     if (!B.is_allowed(hash_move)) hash_move = Move.None;
-    //auto hash_move = Move.None;
-
 
     // 2. Internal Iterative Deepening
 
@@ -207,8 +208,8 @@ class SolverPVS : Solver
       int new_depth = depth - 2;
 
       int v = pvs(alpha, beta, new_depth);
-      //if (v <= alpha)
-      //  v = pvs(-Val.Inf, beta, new_depth);
+      if (v <= alpha)
+        v = pvs(-Val.Inf, beta, new_depth);
 
       if (!undo.best.is_empty)
         if (B.is_allowed(undo.best))
@@ -231,7 +232,7 @@ class SolverPVS : Solver
 
       // Extensions
 
-      //if (in_check) new_depth++;
+      if (in_check) new_depth++;
 
       // LMR
 
@@ -266,34 +267,14 @@ class SolverPVS : Solver
 
         if (val >= beta)
         {
-          //if (!move.is_attack && !in_check)
-          //  update_moves_stats(B.color, move, depth, undo);
+          if (!move.is_attack && !in_check)
+            update_moves_stats(B.color, move, depth, undo);
 
           hash_type = HashType.Beta;
           break;
         }
       }
     }
-
-    //if (legal > 1 && !ml.is_hash_correct())
-    //{
-    //  auto mv0 = new MoveList;
-    //  B.generate!0(mv0);
-    //  B.generate!1(mv0);
-
-    //  bool found = false;
-    //  Move fmove = Move.None;
-    //  foreach (m; mv0) if (m == hash_move)
-    //  {
-    //    found = true;
-    //    fmove = m;
-    //    break;
-    //  }
-    //  assert(false,
-    //    format("hashmove is incorrect\n%s%s\n%s\n\n%d\n%x\n%x\n%d",
-    //            B, mv0, hash_move, found, cast(u16)fmove,
-    //            cast(u16)hash_move, legal));
-    //}
 
     if (!legal)
     {
@@ -348,11 +329,11 @@ class SolverPVS : Solver
           history[color][i][j] >>= 1;
     }
 
-    if (undo.ms.killer[0] != move)
-    {
-      undo.ms.killer[1] = undo.ms.killer[0];
-      undo.ms.killer[0] = move;
-    }
+    //if (undo.ms.killer[0] != move)
+    //{
+    //  undo.ms.killer[1] = undo.ms.killer[0];
+    //  undo.ms.killer[0] = move;
+    //}
   }
 
 private:
