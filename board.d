@@ -262,14 +262,15 @@ class Board
           str ~= to_char(p);
           str ~= ' ';
         }
-        if (rank == 1) str ~= format("  #%016x", state.hash);
+        if (rank == 1) str ~= format!"  #%016x"(state.hash);
         str ~= "\n";
       }
       str ~= "  +----------------   ";
       str ~= to!string(color) ~ " to move\n";
       str ~= "    a b c d e f g h   ";
       str ~= "[" ~ to_string(state.castling, ".") ~ "]";
-      str ~= " / " ~ state.fifty.to!string;
+      str ~= " " ~ state.ep.to_str;
+      str ~= " " ~ state.fifty.to!string;
       str ~= "\n\n";
       return str;
     }
@@ -353,6 +354,8 @@ class Board
 
   bool is_allowed(Move move) // pseudolegal
   {
+    if (move.is_empty) return false;
+
     const SQ from = move.from;
     const SQ to = move.to;
     const MT mt = move.mt;

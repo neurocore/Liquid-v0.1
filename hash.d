@@ -43,7 +43,7 @@ class Hash
     clear();
   }
 
-  HashEntry get(u64 key)
+  HashEntry probe(u64 key)
   {
     HashEntry entry = table[key & (size - 1)];
     if (entry.key != key) return HashEntry.init;
@@ -52,11 +52,12 @@ class Hash
     return entry;
   }
 
-  HashEntry get(u64 key, ref int alpha, ref int beta, int depth, int ply, bool prune = false)
+  Move probe(u64 key, ref int alpha, ref int beta, int depth, int ply, bool prune = false)
   {
     HashEntry entry = table[key & (size - 1)];
-    if (entry.key != key) return HashEntry.init;
-    if (entry.depth < depth) return HashEntry.init;
+    if (entry.type == HashType.Bad) return Move.None;
+    if (entry.key != key) return Move.None;
+    if (entry.depth < depth) return entry.move;
 
     read++;
 
@@ -71,18 +72,20 @@ class Hash
       else if (entry.type == HashType.Beta  && val >= beta) alpha = beta;
     }
 
-    return entry;
+    return entry.move;
   }
 
-  void set(u64 key, Move move, int depth, int ply, int val, HashType type)
+  void store(u64 key, Move move, int depth, int ply, int val, HashType type)
   {
-    HashEntry entry = table[key & (size - 1)];
-
+    import std.format;
     if      (val >  Val.Mate && val <=  Val.Inf) val += ply;
     else if (val < -Val.Mate && val >= -Val.Inf) val -= ply;
 
+    assert(val >= -Val.Inf, format!"%d is too low to store"(val));
+    assert(val <=  Val.Inf, format!"%d is too high to store"(val));
+
     table[key & (size - 1)] =
-      HashEntry(key, move, type, cast(u8)depth, cast(u16)val);
+      HashEntry(key, move, type, cast(u8)depth, 0, cast(u16)val);
   }
 };
 
@@ -106,7 +109,7 @@ static this()
   import std.format;
 
   u64 all = Empty;
-  auto gen = Mt19937_64(42);
+  auto gen = Mt19937_64(43);
 
   foreach (p; BP .. Piece.size)
     foreach (sq; A1 .. SQ.size)

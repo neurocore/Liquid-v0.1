@@ -25,7 +25,7 @@ struct Val
 
 struct HashTables
 {
-  enum Size = 4;
+  enum Size = 128;
 }
 
 struct Pos

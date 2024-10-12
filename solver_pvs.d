@@ -122,14 +122,14 @@ class SolverPVS : Solver
     H.clear();
 
     Move best = Move.None; 
-    for (int depth = 1; depth <= Limits.Plies; depth++)
+    for (int depth = 1; depth < Limits.Plies; depth++)
     {
       int val = pvs(-Val.Inf, Val.Inf, depth);
       if (!thinking) break;
 
       if (depth > max_ply) max_ply = depth;
 
-      best = undos[0].best;
+      if (!undos[0].best.is_empty) best = undos[0].best;
       string fmt = "info depth %d seldepth %d score cp %d nodes %d time %d pv %s";
       sayf(fmt, depth, max_ply, val, nodes, timer.getms(), best);
       stdout.flush();
@@ -153,18 +153,18 @@ class SolverPVS : Solver
 
   int pvs(int alpha, int beta, int depth)
   {
-    if (depth <= 0) return qs(alpha, beta);
+    if (/*!in_check && */depth <= 0) return qs(alpha, beta);
     //check_input();
     if (time_lack()) return 0;
 
     const bool in_pv = (beta - alpha) > 1;
     const bool in_check = B.in_check;
     HashType hash_type = HashType.Alpha;
-    undo.best = Move.None;
     int val = ply - Val.Inf;
+    undo.best = Move.None;
     nodes++;
 
-    if (B.is_draw) return 0; // contempt();
+    if (ply > 0 && B.is_draw) return 0; // contempt();
 
     int legal = 0;
 
@@ -189,11 +189,16 @@ class SolverPVS : Solver
     //  )
     //);
 
-    //HashEntry he = H.get(B.state.hash, alpha, beta, depth, ply, !in_pv);
-    //if (alpha == beta) return alpha;
-    //Move hash_move = he.is_bad ? Move.None : he.move;
-    //if (!B.is_allowed(hash_move)) hash_move = Move.None;
-    auto hash_move = Move.None;
+    // Somehow it returns same position but with wrong ep rights
+    //  how is it even possible? Hash key already includes ep sq
+    //  and i checked that hash key on the fly and calculated
+    //  are the same, this is really strange
+
+    Move hash_move = H.probe(B.state.hash, alpha, beta, depth, 1 /*!in_pv*/);
+    if (alpha == beta) return alpha;
+    if (!B.is_allowed(hash_move)) hash_move = Move.None;
+    //auto hash_move = Move.None;
+
 
     // 2. Internal Iterative Deepening
 
@@ -223,6 +228,10 @@ class SolverPVS : Solver
       legal++;
       int new_depth = depth - 1;
       int reduction = 0;
+
+      // Extensions
+
+      //if (in_check) new_depth++;
 
       // LMR
 
@@ -260,7 +269,6 @@ class SolverPVS : Solver
           //if (!move.is_attack && !in_check)
           //  update_moves_stats(B.color, move, depth, undo);
 
-          alpha = beta;
           hash_type = HashType.Beta;
           break;
         }
@@ -289,10 +297,11 @@ class SolverPVS : Solver
 
     if (!legal)
     {
-      return in_check > 0 ? val : 0; // contempt();
+      return in_check ? val : 0; // contempt();
     }
 
-    H.set(B.state.hash, undo.best, depth, ply, alpha, hash_type);
+    if (!time_lack())
+      H.store(B.state.hash, undo.best, depth, ply, alpha, hash_type);
 
     return alpha;
   }

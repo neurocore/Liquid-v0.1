@@ -63,6 +63,12 @@ SQ opp(SQ sq)
   return to_sq(sq.file, 7 - sq.rank);
 }
 
+string to_str(SQ sq)
+{
+  if (sq == SQ.None) return "-";
+  else return sq.toString;
+}
+
 struct File
 {
   u64 bb;
