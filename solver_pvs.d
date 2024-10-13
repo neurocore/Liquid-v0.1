@@ -155,10 +155,12 @@ class SolverPVS : Solver
   // + LMR +108 elo (1+1 h2h-20)
   // + IID +50 elo (1+1 h2h-30)
   // + Hashing +50 elo (1+1 h2h-20)
-  // + Futility Pruning +131 elo (1+1 h2h-20)
-  // - Null Move Pruning
+  // + Futility Pruning +131 elo (1+1 h2h-30)
+  // + Null Move Pruning +90 elo (.5+.5 h2h-30)
+  // - Delta Pruning in QS
+  // - Recapture & singular extension (check max ply!)
 
-  int pvs(int alpha, int beta, int depth)
+  int pvs(int alpha, int beta, int depth, bool is_null = false)
   {
     //check_input();
 
@@ -200,7 +202,7 @@ class SolverPVS : Solver
     //  and i checked that hash key on the fly and calculated
     //  are the same, this is really strange
 
-    Move hash_move = H.probe(B.state.hash, alpha, beta, depth, 1 /*!in_pv*/);
+    Move hash_move = H.probe(B.state.hash, alpha, beta, depth, true);
     if (alpha == beta) return alpha;
     if (!B.is_allowed(hash_move)) hash_move = Move.None;
 
@@ -210,9 +212,9 @@ class SolverPVS : Solver
 
     if (!in_pv
     &&  !in_check
-    //&&  !isNull
-    && depth >= 1
-    && depth <= 3)
+    &&  !is_null
+    &&  depth >= 1
+    &&  depth <= 3)
     {
       if (static_eval <= alpha - Futility_Margin[depth])
         return qs(alpha, beta);
@@ -220,15 +222,46 @@ class SolverPVS : Solver
         return beta;
     }
 
-    // 3. Internal Iterative Deepening
+    // 3. Null Move Pruning
 
-    if (depth >= 3 && in_pv && hash_move == Move.None)
+    if (!in_pv
+    &&  !in_check
+    &&  !is_null
+    &&  B.has_pieces(B.color)
+    &&  static_eval > beta
+    &&  beta > -Val.Mate
+    &&  depth >= 2)
+    {
+      int R = 3 + depth / 4;
+
+      B.make_null(undo);
+      int v = -pvs(-beta, -beta - 1, depth - R, false /*true*/);
+      B.unmake_null(undo);
+
+      if (time_lack) return alpha;
+
+      if (v >= beta)
+      {
+        if (v > Val.Mate) v = beta; // don't return unproved mates
+        if (depth >= 6) // verification search at high depths
+        {
+          v = pvs(alpha, beta, depth - R, true);
+          if (v >= beta) return v;
+        }
+      }
+    }
+
+    // 4. Internal Iterative Deepening
+
+    if (in_pv
+    &&  depth >= 3
+    &&  hash_move == Move.None)
     {
       int new_depth = depth - 2;
 
-      int v = pvs(alpha, beta, new_depth);
+      int v = pvs(alpha, beta, new_depth, is_null);
       if (v <= alpha)
-        v = pvs(-Val.Inf, beta, new_depth);
+        v = pvs(-Val.Inf, beta, new_depth, is_null);
 
       if (!undo.best.is_empty)
         if (B.is_allowed(undo.best))
@@ -256,29 +289,30 @@ class SolverPVS : Solver
       // LMR
 
       if (!in_pv
+      &&  !is_null
+      &&  !in_check
       &&  depth >= 4
-    // && !isNull
-      && !in_check
-      && !B.in_check
-      && !move.is_attack)
+      &&  !B.in_check
+      &&  !move.is_attack)
       {
+        // from Fruit Reloaded
         reduction = cast(int)( sqrt(depth - 1) + sqrt(legal - 1) );
       }
 
       if (legal == 1)
-        val = -pvs(-beta, -alpha, new_depth);
+        val = -pvs(-beta, -alpha, new_depth, is_null);
       else
       {
-        val = -pvs(-alpha - 1, -alpha, new_depth - reduction);
+        val = -pvs(-alpha - 1, -alpha, new_depth - reduction, is_null);
         if (val > alpha && reduction > 0)
-          val = -pvs(-alpha - 1, -alpha, new_depth);
+          val = -pvs(-alpha - 1, -alpha, new_depth, is_null);
         if (val > alpha && val < beta)
-          val = -pvs(-beta, -alpha, new_depth);
+          val = -pvs(-beta, -alpha, new_depth, is_null);
       }
 
       B.unmake(move, undo);
 
-      if (time_lack()) return alpha;
+      if (time_lack) return alpha;
 
       if (val > alpha)
       {
@@ -302,7 +336,7 @@ class SolverPVS : Solver
       return in_check ? val : 0; // contempt();
     }
 
-    if (!time_lack())
+    if (!time_lack)
       H.store(B.state.hash, undo.best, depth, ply, alpha, hash_type);
 
     return alpha;
@@ -311,7 +345,7 @@ class SolverPVS : Solver
   int qs(int alpha, int beta)
   {
     //check_input();
-    if (time_lack()) return 0;
+    if (time_lack) return 0;
 
     nodes++;
     int stand_pat = B.eval(E);

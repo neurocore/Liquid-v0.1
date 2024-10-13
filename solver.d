@@ -33,6 +33,6 @@ struct Undo // Alpha-beta-like node state
 {
   State state = State.init;
   MoveSeries ms;
-  // Val pst;
+  // Vals pst;
   Move curr, best;
 }

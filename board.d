@@ -114,6 +114,12 @@ class Board
     return false;
   }
 
+  bool has_pieces(Color col) const
+  {
+    u64 pieces = occ[col] ^ piece[BK.of(col)] ^ piece[BP.of(col)];
+    return cast(bool)pieces;
+  }
+
   Color to_move() const
   {
     return color;
@@ -742,6 +748,30 @@ class Board
 
     undo--;
     state = undo.state;
+  }
+
+  void make_null(ref Undo * undo)
+  {
+    undo.state = state;
+    undo++;
+
+    color ^= 1;
+
+    state.ep = SQ.None;
+    state.bhash ^= hash_wtm[0];
+
+    threefold ~= Key(state.hash, true);
+  }
+
+  void unmake_null(ref Undo * undo)
+  {
+    color ^= 1;
+    
+    undo--;
+    state = undo.state;
+
+    assert(threefold.length > 0);
+    threefold.popBack();
   }
 
   u64 att_mask(bool captures)() const
