@@ -6,6 +6,9 @@ import timer, board, moves, gen;
 import consts, engine, piece, utils;
 import app, hash, eval, eval_smart;
 
+// from GreKo 2021.12
+const int[] Futility_Margin = [0, 50, 350, 550];
+
 class SolverPVS : Solver
 {
   this(Engine engine)
@@ -152,12 +155,12 @@ class SolverPVS : Solver
   // + LMR +108 elo (1+1 h2h-20)
   // + IID +50 elo (1+1 h2h-30)
   // + Hashing +50 elo (1+1 h2h-20)
+  // + Futility Pruning +131 elo (1+1 h2h-20)
   // - Null Move Pruning
 
   int pvs(int alpha, int beta, int depth)
   {
     //check_input();
-    if (time_lack()) return 0;
 
     const bool in_pv = (beta - alpha) > 1;
     const bool in_check = B.in_check;
@@ -201,7 +204,23 @@ class SolverPVS : Solver
     if (alpha == beta) return alpha;
     if (!B.is_allowed(hash_move)) hash_move = Move.None;
 
-    // 2. Internal Iterative Deepening
+    // 2. Futility Pruning
+
+    int static_eval = B.eval(E);
+
+    if (!in_pv
+    &&  !in_check
+    //&&  !isNull
+    && depth >= 1
+    && depth <= 3)
+    {
+      if (static_eval <= alpha - Futility_Margin[depth])
+        return qs(alpha, beta);
+      if (static_eval >= beta + Futility_Margin[depth])
+        return beta;
+    }
+
+    // 3. Internal Iterative Deepening
 
     if (depth >= 3 && in_pv && hash_move == Move.None)
     {
@@ -258,6 +277,8 @@ class SolverPVS : Solver
       }
 
       B.unmake(move, undo);
+
+      if (time_lack()) return alpha;
 
       if (val > alpha)
       {
