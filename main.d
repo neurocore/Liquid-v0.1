@@ -21,17 +21,12 @@ void main(string[] args)
 
   debug
   {
-    //import std.conv;
-    //import eval, utils;
-    import hash, solver;
-    writeln("Undo.size = ", Undo.sizeof);
-    writeln("HashEntry.size = ", HashEntry.sizeof);
-    writeln(__traits(isPOD, State));
-    writeln(__traits(isPOD, HashEntry));
-    writeln(Table.between(D1, F3).to_bitboard);
+    import consts;
+    Board B = new Board;
+    //B.set("5k2/p2P2pp/1b6/1p6/1Nn1P1n1/8/PPP4P/R2QK1NR w KQ -");
 
-    //writeln(to!string(Term.MatKnight));
-    //writeln(terms);
+    //writeln(B);
+    //writeln(B.see(Move("d7d8q")));
 
     //writefln("%(%(%16x\n%)\n\n%)", hash_key);
     //writefln("%(%16x\n%)", hash_castle);

@@ -35,6 +35,8 @@ struct Pos
   enum Init = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   enum Fine = "8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - -";
   enum Kiwi = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -";
+  enum See1 = "1k1r4/1pp4p/p7/4p3/8/P5P1/1PP4P/2K1R3 w - -"; // Re1e5?
+  enum See2 = "1k1r3q/1ppn3p/p4b2/4p3/8/P2N2P1/1PP1R1BP/2K1Q3 w - -"; // Nd3e5?
 }
 
 struct Tune

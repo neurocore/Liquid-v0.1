@@ -154,6 +154,21 @@ class Board
     return false;
   }
 
+  u64 get_attacks(u64 o, SQ sq) const
+  {
+    const u64 bq = piece[BB] | piece[WB] | piece[BQ] | piece[WQ];
+    const u64 rq = piece[BR] | piece[WR] | piece[BQ] | piece[WQ];
+
+    u64 att = Empty;
+    att |= bq & b_att(o, sq);
+    att |= rq & r_att(o, sq);
+    att |= piece[BP] & Table.atts(WP, sq);
+    att |= piece[WP] & Table.atts(BP, sq);
+    att |= (piece[BN] | piece[WN]) & Table.atts(BN, sq);
+    att |= (piece[BK] | piece[WK]) & Table.atts(BK, sq);
+    return att;
+  }
+
   bool in_check(int opp = 0) const
   {
     Piece p = to_piece(King, cast(Color)(color ^ opp));
@@ -301,6 +316,58 @@ class Board
     key ^= hash_wtm[color];
 
     return key;
+  }
+
+  int see(Move move) const
+  {
+    assert(move.is_cap);
+
+    u64 least_valuable_piece(u64 attadef, Color col, ref int p)
+    {
+      for (p = BP.of(col); p <= BK.of(col); p += 2)
+      {
+        const u64 subset = attadef & piece[p];
+        if (subset) return lsb(subset);
+      }
+      return Empty;
+    }
+
+    u64 consider_xrays(u64 o, SQ sq)
+    {
+      const u64 bq = piece[BB] | piece[WB] | piece[BQ] | piece[WQ];
+      const u64 rq = piece[BR] | piece[WR] | piece[BQ] | piece[WQ];
+
+      u64 att = Empty;
+      att |= o & bq & b_att(o, sq);
+      att |= o & rq & r_att(o, sq);
+      return att;
+    }
+
+    const int[] value = [100, 100, 325, 325, 325, 325, 500, 500, 1000, 1000, 20000, 20000, 0, 0];
+    int[32] gain;
+    int d = 0;
+    int p = square[move.from];
+
+    u64 o       = occ[0] | occ[1];
+    u64 xrayers = o ^ piece[BN] ^ piece[WN] ^ piece[BK] ^ piece[WK];
+    u64 from_bb = move.from.bit;
+    u64 attadef = get_attacks(o, move.to);
+    gain[d]     = value[square[move.to]];
+
+    do
+    {
+      d++;
+      gain[d]  = value[p] - gain[d - 1]; // speculative store, if defended
+      attadef ^= from_bb; // reset bit in set to traverse
+      o       ^= from_bb; // reset bit in temporary occupancy (for x-Rays)
+
+      if (from_bb & xrayers) attadef |= consider_xrays(o, move.to);
+      from_bb = least_valuable_piece(attadef, (cast(Piece)p).color.opp, p);
+    }
+    while (from_bb);
+
+    while (--d) gain[d - 1] = -max(-gain[d - 1], gain[d]);
+    return gain[0];
   }
 
   Move recognize(Move move)
@@ -524,8 +591,6 @@ class Board
 
     return Move(from, to, mt);
   }
-
-  import std.stdio;
 
   bool make(const Move move, ref Undo * undo)
   {

@@ -58,8 +58,8 @@ class EvalSmart : Eval
   this(string tune = Tune.Def)
   {
     set(tune);
-    log("[EvalSmart]");
-    log(toString());
+    //log("[EvalSmart]");
+    //log(toString());
     init();
 
     //log(pst);

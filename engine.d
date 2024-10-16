@@ -23,7 +23,7 @@ class Engine
 
   void start()
   {
-    logf("%v", options);
+    //logf("%v", options);
 
     new_game();
     log(B);
@@ -117,6 +117,21 @@ class Engine
     S[1].set(B);
     S[0].perft(depth);
     S[1].perft(depth);
+  }
+
+  void see(Move mv)
+  {
+    Move move = B.recognize(mv);
+
+    if (move.is_cap)
+    {
+      int score = B.see(move);
+      print_message(format!"SEE(%s) = %d"(move, score));
+    }
+    else
+    {
+      print_message(format!"%s is not a capture"(move));
+    }
   }
 
   void set_debug(bool val)

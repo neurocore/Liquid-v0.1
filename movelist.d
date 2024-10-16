@@ -120,17 +120,6 @@ class MoveList
     }
   }
 
-  // r1bk2nQ/pppn3p/5p2/3q4/8/2B2N1P/PP3PP1/3RR1K1 b - - 1 23
-  
-  // [20241007]
-  // not clearing ep square: ed Qd1 Kb8 Bb2 (c5d4 - illegal)
-  // 2k2b1r/1p3ppp/q4n2/2pr4/Pp1Pp2P/1N2P1P1/1PQ2PR1/R1B1K3 b - d3 0 19
-
-  // [20241009]
-  // showing here mate in 2, but there is not (Re1+ missing passer)
-  // 8/5R2/5p2/1p6/5k2/1P6/4r1p1/6K1 b - - 1 46 
-
-
   void value_moves(bool att = false)(ref Board board/*, ref u64[64][64][2] history*/)
   {
     const int[] cost = [1, 1, 3, 3, 3, 3, 5, 5, 9, 9, 200, 200, 0, 0];
@@ -158,8 +147,10 @@ class MoveList
         }
         else if (mt.is_cap)
         {
-          i64 order = compare(v, a, Order.BadCap, Order.EqCap, Order.WinCap);
-          ptr.val = order + 100 * v - a; // MVV-LVA
+          int score = board.see(ptr.move);
+          i64 order = compare(score, 0, Order.BadCap, Order.EqCap, Order.WinCap);
+          ptr.val = order + score;
+          //ptr.val = order + 100 * v - a; // MVV-LVA
         }
       }
       else

@@ -109,6 +109,13 @@ public:
       else if (op == "off") return new Cmd_Debug(false);
       return new Cmd_Bad(highlight(parts, 1), Bad.Invalid);
     }
+    else if (cmd == "see")
+    {
+      if (parts.length < 2) return new Cmd_Bad(line ~ " ~~~", Bad.Incomplete);
+
+      string mv = reader.get_word();
+      return new Cmd_See(Move(mv));
+    }
     else if (cmd == "register")
     {
       return new Cmd_Response("registration ok");

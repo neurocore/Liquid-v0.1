@@ -130,6 +130,17 @@ class Cmd_Perft : Cmd
   }
 }
 
+class Cmd_See : Cmd
+{  
+  private Move move;
+  this(Move move) { this.move = move; }
+
+  override void execute(Engine E)
+  {
+    E.see(move);
+  }
+}
+
 class Cmd_Bench : Cmd
 {
   private string file;
