@@ -2,7 +2,7 @@ module utils;
 import std.stdio, std.format, std.conv;
 import std.traits, std.typecons, std.regex;
 import std.array, std.string, std.algorithm;
-import std.concurrency, core.atomic, core.thread;
+import std.concurrency, core.thread;
 import std.math: sqrt;
 import app;
 
@@ -205,56 +205,56 @@ R compare(T, R)(T a, T b, R less, R equal, R more)
 int sqrt(int x) { return cast(int)sqrt(cast(float)x); }
 
 
-void async_input(shared Signals s) { s.loop(); }
+void async_input(shared Input i) { i.loop(); }
 
-final shared class Signals // one thread only
+final shared class Input // rwqueue
 {
-  private bool _listening = false;
-  private bool _is_ready = false;
-  private bool _is_stop = false;
-  private bool _is_quit = false;
+  class Lock {}
+  private Lock lock;
+  private int size;
+  private string[] queue;
+  private size_t head, tail;
 
-  bool is_ready() { return _is_ready; }
-  bool is_stop()  { return _is_stop; }
-  bool is_quit()  { return _is_quit; }
+  this(int size)
+  {
+    this.size = size;
+    head = tail = 0;
+    queue.length = size;
+    lock = new shared Lock;
+  }
+
+  bool empty() const { return head == tail; }
 
   void loop()
   {
-    string str;
-    do
+    while(true)
     {
-      if (_listening)
-      {
-        str = readln().chomp();
-        log(": ", str);
-        switch(str)
-        {
-          case "ready": cas(&_is_ready, false, true); break;
-          case "quit" : cas(&_is_quit,  false, true); goto case;
-          case "stop" : cas(&_is_stop,  false, true); break;
-          default: break;
-        }
-      }
-      //Thread.sleep(300.msecs);
+      auto str = readln().chomp();
+      push(str);
     }
-    while (str != "quit");
   }
 
-  void run()
+  void push(string str)
   {
-    cas(&_listening, false, true);
+    synchronized(lock)
+    {
+      queue[tail] = str;
+      tail = (tail + 1) % size;
+    }
   }
 
-  void wait()
+  string pop()
   {
-    cas(&_listening, true, false);
-    clear();
-  }
-
-  void clear()
-  {
-    cas(&_is_ready, true, false);
-    cas(&_is_stop,  true, false);
-    // quit flag is final
+    synchronized(lock)
+    {
+      string str;
+      if (!empty)
+      {
+        str = queue[head];
+        queue[head] = null;
+        head = (head + 1) % size;
+      }
+      return str;
+    }
   }
 }

@@ -17,9 +17,9 @@ const int[] Futility_Margin = [0, 50, 350, 550];
 
 class SolverPVS : Solver
 {
-  this(Engine engine, shared Signals signals)
+  this(Engine engine, shared Input input)
   {
-    super(engine, signals);
+    super(engine, input);
     B = new Board;
     for (int i = 0; i < Limits.Plies; i++)
       undos[i].ms = new MoveSeries(&B);
@@ -38,9 +38,13 @@ class SolverPVS : Solver
 
   bool abort()
   {
-    if (signals.is_ready) say("readyok");
-    if (signals.is_stop) thinking = false;
-    signals.clear();
+    string str = input.pop();
+    if (str == "isready") say("readyok");
+    if (str == "stop" || str == "stop")
+    {
+      thinking = false;
+      return true;
+    }
 
     if (!thinking) return true;
     if (infinite) return false;

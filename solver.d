@@ -4,10 +4,10 @@ import moves, movelist, consts, engine;
 
 class Solver
 {
-  this(Engine engine, shared Signals signals)
+  this(Engine engine, shared Input input)
   {
     this.engine = engine;
-    this.signals = signals;
+    this.input = input;
   }
   abstract Move get_move(MS time);
   void set(const Board board) {}
@@ -17,16 +17,16 @@ class Solver
 
 protected:
   Engine engine = null;
-  shared Signals signals;
+  shared Input input;
   bool thinking = false;
   bool infinite = false;
 }
 
 class Reader : Solver
 {
-  this(Engine engine, shared Signals signals)
+  this(Engine engine, shared Input input)
   {
-    super(engine, signals);
+    super(engine, input);
   }
   override Move get_move(MS time) { return Move(); }
 }
