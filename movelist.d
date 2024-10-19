@@ -120,7 +120,7 @@ class MoveList
     }
   }
 
-  void value_moves(bool att = false)(ref Board board/*, ref u64[64][64][2] history*/)
+  void value_moves(bool att = false)(ref Board board, ref u64[64][64][2] history)
   {
     const int[] cost = [1, 1, 3, 3, 3, 3, 5, 5, 9, 9, 200, 200, 0, 0];
     const int[] prom = [0, cost[WN], cost[WB], cost[WR], cost[WQ], 0];
@@ -150,12 +150,11 @@ class MoveList
           int score = board.see(ptr.move);
           i64 order = compare(score, 0, Order.BadCap, Order.EqCap, Order.WinCap);
           ptr.val = order + score;
-          //ptr.val = order + 100 * v - a; // MVV-LVA
         }
       }
       else
       {
-        //ptr.val = history[board.color][from][to];
+        ptr.val = history[board.color][from][to];
       }
     }
   }
@@ -239,7 +238,7 @@ class MoveSeries
         step++;
         B.generate!1(ml);
         remove_hash_move();
-        ml.value_moves!1(*B);
+        ml.value_moves!1(*B, history);
         goto case;
 
       case Step.WinCaps:
@@ -291,7 +290,7 @@ class MoveSeries
         step++;
         B.generate!0(ml);
         remove_hash_and_killers();
-        ml.value_moves!0(*B);
+        ml.value_moves!0(*B, history);
         goto case;
 
       case Step.Quiets:
@@ -326,6 +325,7 @@ class MoveSeries
 
 public:
   Move[2] killer;
+  u64[64][64][2] history;
 
 private:
   Board * B;

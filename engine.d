@@ -1,9 +1,10 @@
 module engine;
+import std.concurrency;
 import std.stdio, std.string;
 import std.algorithm: canFind;
 import consts, command, moves;
 import piece, board, protocol;
-import solver, solver_pvs;
+import solver, solver_pvs, utils;
 import app, epd, timer, options;
 
 class Engine
@@ -12,10 +13,13 @@ class Engine
 
   this()
   {
+    signals = new shared Signals;
+    spawn(&async_input, signals);
+
     P = new UCI;
     B = new Board;
-    S[0] = new SolverPVS(this);
-    S[1] = new Reader(this);
+    S[0] = new SolverPVS(this, signals);
+    S[1] = new Reader(this, signals);
     options = new Options;
   }
 
@@ -34,6 +38,15 @@ class Engine
       running = read_input();
     }
     while (running);
+  }
+
+  bool read_input()
+  {
+    string str = readln().chomp();
+    log("> ", str);
+    Cmd cmd = P.parse(str, options);
+    cmd.execute(this);
+    return !cmd.exit;
   }
 
   BenchResult bench(string file)
@@ -72,14 +85,6 @@ class Engine
 
     mode = old_mode;
     return result;
-  }
-
-  bool read_input()
-  {
-    string str = readln().chomp();
-    Cmd cmd = P.parse(str, options);
-    cmd.execute(this);
-    return !cmd.exit;
   }
 
   void print_message(string message)
@@ -157,15 +162,20 @@ class Engine
   {
     MS time = sp.full_time(B.to_move);
 
+    signals.run();
+
     foreach (solver; S)
     {
       solver.set(B);
       solver.set_analysis(sp.infinite);
       solver.get_move(time);
     }
+
+    signals.wait();
   }
 
 private:
+  shared Signals signals;
   Board B;
   Protocol P;
   Solver[2] S;

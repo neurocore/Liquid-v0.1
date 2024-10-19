@@ -282,6 +282,44 @@ class EvalSmart : Eval
   // ? space
   // ? connectivity
 
+  // [passers testbed]
+  //
+  // 2n1k3/p7/3B2K1/2P2p1p/8/4P1P1/5P1P/8 b - - 0 46; bm c8d6; c0 "Far passer not in king square"
+  // 8/p1p5/6pp/PPP2k2/8/4PK2/8/8 w - - 0 43; bm b5b6; c0 "Classic pawn breakthrough"
+  // 7K/8/k1P5/7p/8/8/8/8 w - -; bm h8g7; c0 "Reti etude"
+
+  // "taken from the book Pawn endings by A. Cetkov and
+  // fundamental Chess Endings by K. Muller & F. Lamprecht"
+
+  // 8/2k5/2p5/2Kp3p/3P3P/8/1P6/8 w - - 0 0
+  // 8/p7/1p1k3p/2pPp1p1/P1P1P1P1/7P/8/5K2 w - - 0 0
+  // 8/8/4k3/pp4Pp/4K2P/8/1P6/8 w - - 0 0
+  // 8/8/1p6/3kPp2/5Pp1/1K4P1/8/8 w - - 0 0
+  // k7/2p1pp2/2P3p1/4P1P1/5P2/p7/Kp3P2/8 w - - 0 0
+  // 8/5K2/kp6/p1p5/P2p4/1P3P2/2P5/8 b - - 0 0
+  // 1k6/1p2p2p/pK1p2pP/4P1P1/8/5P2/8/8 w - - 0 0
+  // 8/1p4p1/2k2p1p/5P2/4P1PP/3K4/8/8 w - - 0 0
+  // 8/6p1/p2k4/P3p3/2P1K3/8/7P/8 w - - 0 0
+  // 8/8/1p4p1/2P5/4p2k/8/K5P1/8 w - - 0 0
+  // 8/5k2/8/3ppP1p/2p3P1/1pP1K2P/1P6/8 b - - 0 0
+  // 8/8/1p3p2/4k1pp/p3P2P/P3K1P1/1P6/8 w - - 0 0
+  // 8/6pp/8/2K5/1p4P1/k6P/P7/8 b - - 0 0
+  // 8/1p6/p3p3/4k1p1/1P6/2P4P/4K1P1/8 w - - 0 0
+  // 8/3pkP2/8/1pP4P/5P1p/7K/6PP/8 w - - 0 0
+  // 8/6p1/6pp/8/k4P2/6K1/6PP/8 w - - 0 0
+  // 7k/8/5P2/7P/ppp5/8/8/K7 w - - 0 0
+  // 8/6K1/8/ppp2k2/8/1P6/1P5P/8 w - - 0 0
+  // 8/5pp1/8/k2p1Pp1/P5P1/3P4/8/3K4 w - - 0 0
+  // 8/p7/1p4kp/3p4/3P4/P3K3/1P4P1/8 w - - 0 0
+  // 8/8/3k4/4p2p/2P1K3/1p5P/1P6/8 w - - 0 0
+  // 8/1pp5/p5p1/2Pp1k2/3P4/5K2/PP3P2/8 b - - 0 0
+  // 8/5p2/3p2p1/3kp3/1p5P/1P2K1P1/2P5/8 w - - 0 0
+  // 8/8/p5k1/2pP3p/1pP5/1P6/P7/6K1 w - - 0 0
+  // 8/6pp/5p2/3k1PP1/5K1P/8/8/8 w - - 0 0
+  // 1k6/8/p5p1/6p1/6P1/5P1P/6PK/8 w - - 0 0
+  // 8/1K6/8/k4p2/4pp2/8/4PP2/8 w - - 0 0
+  // 5k2/8/2p5/4p2p/3PP2P/4P3/7K/8 b - - 0 0
+
   override int eval(const Board B)
   {
     ei.clear();

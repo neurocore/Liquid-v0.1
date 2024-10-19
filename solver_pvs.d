@@ -1,19 +1,25 @@
 module solver_pvs;
-import std.stdio, std.format;
+//import std.concurrency;
+import std.stdio, std.string, std.format;
 import std.algorithm: min, max;
 import types, solver, movelist;
 import timer, board, moves, gen;
 import consts, engine, piece, utils;
 import app, hash, eval, eval_smart;
 
+import std.stdio : writefln;
+
+extern(C) int kbhit();
+extern(C) int getch();
+
 // from GreKo 2021.12
 const int[] Futility_Margin = [0, 50, 350, 550];
 
 class SolverPVS : Solver
 {
-  this(Engine engine)
+  this(Engine engine, shared Signals signals)
   {
-    super(engine);
+    super(engine, signals);
     B = new Board;
     for (int i = 0; i < Limits.Plies; i++)
       undos[i].ms = new MoveSeries(&B);
@@ -30,10 +36,15 @@ class SolverPVS : Solver
 
   int ply() const @property { return cast(int)(undo - undos.ptr); }
 
-  bool time_lack()
+  bool abort()
   {
+    if (signals.is_ready) say("readyok");
+    if (signals.is_stop) thinking = false;
+    signals.clear();
+
     if (!thinking) return true;
     if (infinite) return false;
+
     const MS time_to_move = to_think / 30;
     if (timer.getms() > time_to_move)
     {
@@ -238,7 +249,7 @@ class SolverPVS : Solver
       int v = -pvs(-beta, -beta - 1, depth - R, false /*true*/);
       B.unmake_null(undo);
 
-      if (time_lack) return alpha;
+      if (abort) return alpha;
 
       if (v >= beta)
       {
@@ -312,7 +323,7 @@ class SolverPVS : Solver
 
       B.unmake(move, undo);
 
-      if (time_lack) return alpha;
+      if (abort) return alpha;
 
       if (val > alpha)
       {
@@ -336,7 +347,7 @@ class SolverPVS : Solver
       return in_check ? val : 0; // contempt();
     }
 
-    if (!time_lack)
+    if (!abort)
       H.store(B.state.hash, undo.best, depth, ply, alpha, hash_type);
 
     return alpha;
@@ -345,7 +356,7 @@ class SolverPVS : Solver
   int qs(int alpha, int beta)
   {
     //check_input();
-    if (time_lack) return 0;
+    if (abort) return 0;
 
     nodes++;
     int stand_pat = B.eval(E);
@@ -375,16 +386,16 @@ class SolverPVS : Solver
 
   void update_moves_stats(Color color, Move move, int depth, Undo * undo)
   {
-    history[color][move.from][move.to] += depth * depth;
-    if (history[color][move.from][move.to] >> 56)
+    undo.ms.history[color][move.from][move.to] += depth * depth;
+    if (undo.ms.history[color][move.from][move.to] >> 56)
     {
       import square;
       foreach (i; A1..SQ.size)
         foreach (j; A1..SQ.size)
-          history[color][i][j] >>= 1;
+          undo.ms.history[color][i][j] >>= 1;
     }
 
-    //if (undo.ms.killer[0] != move)
+    //if (undo.ms.killer[0] != move) // why it ruins the whole
     //{
     //  undo.ms.killer[1] = undo.ms.killer[0];
     //  undo.ms.killer[0] = move;
@@ -392,8 +403,8 @@ class SolverPVS : Solver
   }
 
 private:
+  //shared Signals signals;
   Undo[Limits.Plies] undos;
-  u64[64][64][2] history;
   Undo * undo;
   Board B;
   Eval E;

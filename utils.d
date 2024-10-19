@@ -2,6 +2,7 @@ module utils;
 import std.stdio, std.format, std.conv;
 import std.traits, std.typecons, std.regex;
 import std.array, std.string, std.algorithm;
+import std.concurrency, core.atomic, core.thread;
 import std.math: sqrt;
 import app;
 
@@ -202,3 +203,58 @@ R compare(T, R)(T a, T b, R less, R equal, R more)
 }
 
 int sqrt(int x) { return cast(int)sqrt(cast(float)x); }
+
+
+void async_input(shared Signals s) { s.loop(); }
+
+final shared class Signals // one thread only
+{
+  private bool _listening = false;
+  private bool _is_ready = false;
+  private bool _is_stop = false;
+  private bool _is_quit = false;
+
+  bool is_ready() { return _is_ready; }
+  bool is_stop()  { return _is_stop; }
+  bool is_quit()  { return _is_quit; }
+
+  void loop()
+  {
+    string str;
+    do
+    {
+      if (_listening)
+      {
+        str = readln().chomp();
+        log(": ", str);
+        switch(str)
+        {
+          case "ready": cas(&_is_ready, false, true); break;
+          case "quit" : cas(&_is_quit,  false, true); goto case;
+          case "stop" : cas(&_is_stop,  false, true); break;
+          default: break;
+        }
+      }
+      //Thread.sleep(300.msecs);
+    }
+    while (str != "quit");
+  }
+
+  void run()
+  {
+    cas(&_listening, false, true);
+  }
+
+  void wait()
+  {
+    cas(&_listening, true, false);
+    clear();
+  }
+
+  void clear()
+  {
+    cas(&_is_ready, true, false);
+    cas(&_is_stop,  true, false);
+    // quit flag is final
+  }
+}

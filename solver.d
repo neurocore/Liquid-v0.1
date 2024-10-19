@@ -1,12 +1,13 @@
 module solver;
-import types, timer, piece, board;
+import types, timer, piece, board, utils;
 import moves, movelist, consts, engine;
 
 class Solver
 {
-  this(Engine engine)
+  this(Engine engine, shared Signals signals)
   {
     this.engine = engine;
+    this.signals = signals;
   }
   abstract Move get_move(MS time);
   void set(const Board board) {}
@@ -16,15 +17,16 @@ class Solver
 
 protected:
   Engine engine = null;
+  shared Signals signals;
   bool thinking = false;
   bool infinite = false;
 }
 
 class Reader : Solver
 {
-  this(Engine engine)
+  this(Engine engine, shared Signals signals)
   {
-    super(engine);
+    super(engine, signals);
   }
   override Move get_move(MS time) { return Move(); }
 }
