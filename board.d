@@ -247,7 +247,7 @@ class Board
       state.castling |= ch.to_castling();
     }
 
-    state.ep = parts[3].toSQ(); // en passant
+    state.ep = parts[3].to_sq; // en passant
 
     string fifty = parts.length > 4 ? parts[4] : "";
     state.fifty = fifty.safe_to!u8; // fifty move counter

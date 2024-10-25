@@ -23,14 +23,6 @@ string toString(SQ sq)
   return to!string(fileChar) ~ to!string(rankChar);
 }
 
-SQ toSQ(string str)
-{
-  if (str.length < 2) return SQ.None;
-  int file = str[0] - 'a';
-  int rank = str[1] - '1';
-  return to_sq(file, rank);
-}
-
 SQ add(SQ a, int shift)
 {
   int b = a + shift;
@@ -48,9 +40,8 @@ int file(const SQ x) { return x & 7; }
 
 SQ to_sq(const int f, const int r)
 {
-  if (0 <= f && f < 8 && 0 <= r && r < 8)
-    return cast(SQ) ((r << 3) + f);
-  else return SQ.None;
+  assert(0 <= f && f < 8 && 0 <= r && r < 8);
+  return cast(SQ) ((r << 3) + f);
 }
 
 SQ to_sq(string s)

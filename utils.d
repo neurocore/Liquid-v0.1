@@ -214,6 +214,7 @@ final shared class Input // rwqueue
   private int size;
   private string[] queue;
   private size_t head, tail;
+  private bool working = true;
 
   this(int size)
   {
@@ -224,14 +225,19 @@ final shared class Input // rwqueue
   }
 
   bool empty() const { return head == tail; }
+  bool is_working() const { return working; }
 
   void loop()
   {
-    while(true)
+    string str;
+    do
     {
-      auto str = readln().chomp();
+      str = readln().chomp();
       push(str);
     }
+    while (str != "quit");
+
+    working = false;
   }
 
   void push(string str)

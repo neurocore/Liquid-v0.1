@@ -42,6 +42,7 @@ class Engine
 
   bool read_input()
   {
+    if (!input.is_working) return false;
     string str = input.pop();
     if (str.length > 0)
     {
@@ -136,11 +137,11 @@ class Engine
     if (move.is_cap)
     {
       int score = B.see(move);
-      print_message(format!"SEE(%s) = %d"(move, score));
+      print_message(format!"SEE(%v) = %d"(move, score));
     }
     else
     {
-      print_message(format!"%s is not a capture"(move));
+      print_message(format!"%v is not a capture"(move));
     }
   }
 

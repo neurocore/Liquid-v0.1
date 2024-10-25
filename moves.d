@@ -45,8 +45,8 @@ struct Move // newtype paradigm
     else
     {
       str ~= " ";
-      SQ from = str[0..2].toSQ();
-      SQ to   = str[2..4].toSQ();
+      SQ from = str[0..2].to_sq;
+      SQ to   = str[2..4].to_sq;
       MT mt   = str[4].parse_promotee();
       move = Move(from, to, mt);
     }

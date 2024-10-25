@@ -1,16 +1,10 @@
 module solver_pvs;
-//import std.concurrency;
 import std.stdio, std.string, std.format;
 import std.algorithm: min, max;
-import types, solver, movelist;
-import timer, board, moves, gen;
+import types, solver, movelist, gen, timer;
+import square, board, bitboard, moves;
 import consts, engine, piece, utils;
 import app, hash, eval, eval_smart;
-
-import std.stdio : writefln;
-
-extern(C) int kbhit();
-extern(C) int getch();
 
 // from GreKo 2021.12
 const int[] Futility_Margin = [0, 50, 350, 550];
@@ -38,12 +32,15 @@ class SolverPVS : Solver
 
   bool abort()
   {
-    string str = input.pop();
-    if (str == "isready") say("readyok");
-    if (str == "stop" || str == "stop")
+    if ((nodes & 8191) == 0)
     {
-      thinking = false;
-      return true;
+      string str = input.pop();
+      if (str == "isready") say("readyok");
+      if (str == "stop" || str == "stop")
+      {
+        thinking = false;
+        return true;
+      }
     }
 
     if (!thinking) return true;
@@ -143,16 +140,14 @@ class SolverPVS : Solver
     //H.clear();
 
     Move best = Move.None; 
-    for (int depth = 1; depth < Limits.Plies; depth++)
+    for (iter = 1; iter < Limits.Plies; iter++)
     {
-      int val = pvs(-Val.Inf, Val.Inf, depth);
+      int val = pvs(-Val.Inf, Val.Inf, iter);
       if (!thinking) break;
 
-      if (depth > max_ply) max_ply = depth;
-
       if (!undos[0].best.is_empty) best = undos[0].best;
-      string fmt = "info depth %d seldepth %d score cp %d nodes %d time %d pv %s";
-      sayf(fmt, depth, max_ply, val, nodes, timer.getms(), best);
+      auto fmt = "info depth %d seldepth %d score cp %d nodes %d time %d pv %s";
+      sayf(fmt, iter, max_ply, val, nodes, timer.getms(), best);
       stdout.flush();
 
       if (val > Val.Mate || val < -Val.Mate) break;
@@ -250,7 +245,7 @@ class SolverPVS : Solver
       int R = 3 + depth / 4;
 
       B.make_null(undo);
-      int v = -pvs(-beta, -beta - 1, depth - R, false /*true*/);
+      int v = -pvs(-beta, -beta + 1, depth - R, false /*true*/);
       B.unmake_null(undo);
 
       if (abort) return alpha;
@@ -360,14 +355,13 @@ class SolverPVS : Solver
   int qs(int alpha, int beta)
   {
     //check_input();
-    if (abort) return 0;
 
     nodes++;
     int stand_pat = B.eval(E);
     if (stand_pat >= beta) return beta;
     if (alpha < stand_pat) alpha = stand_pat;
 
-    // Looking all captures moves
+    // Looking all attack moves
 
     auto ms = undo.ms;
     ms.init(true);
@@ -380,6 +374,8 @@ class SolverPVS : Solver
       int val = -qs(-beta, -alpha);
 
       B.unmake(move, undo);
+
+      if (abort) return alpha;
 
       if (val >= beta) return beta;
       if (val > alpha) alpha = val;
@@ -407,13 +403,13 @@ class SolverPVS : Solver
   }
 
 private:
-  //shared Signals signals;
   Undo[Limits.Plies] undos;
   Undo * undo;
   Board B;
   Eval E;
   Hash H;
   u64 nodes;
+  int iter;
   int max_ply;
   MS to_think;
   Timer timer;

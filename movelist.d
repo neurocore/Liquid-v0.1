@@ -58,6 +58,16 @@ class MoveList
     return Move.None;
   }
 
+  Move[] get_moves()
+  {
+    Move[] moves;
+    for (MoveVal * ptr = first; ptr != last; ++ptr)
+    {
+      moves ~= ptr.move;
+    }
+    return moves;
+  }
+
   void swap(MoveVal * a, MoveVal * b) const
   {
     MoveVal t = *a;
