@@ -28,7 +28,8 @@ enum Term
   KnightAdj, RookAdj, EarlyQueen,
   ContactCheckR, ContactCheckQ,
   Shield1, Shield2,
-  Candidate, CandidateK, Passer, PasserK, PasserSupport, PasserSupportK,
+  PasserK, Candidate, Passer, Supported,
+  Unstoppable, FreePasser,
   Tempo,
   size
 }

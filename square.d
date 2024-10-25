@@ -1,4 +1,5 @@
 module square;
+import std.math: abs;
 import std.algorithm, std.conv, std.string, std.range;
 import types, utils, bitboard;
 
@@ -101,3 +102,8 @@ static immutable Rank[] rank_bb =
   Rank1, Rank2, Rank3, Rank4,
   Rank5, Rank6, Rank7, Rank8
 ];
+
+int k_dist(SQ a, SQ b) // Chebyshev or king distance
+{
+  return max(abs(a.rank - b.rank), abs(a.file - b.file));
+}

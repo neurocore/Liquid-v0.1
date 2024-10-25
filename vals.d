@@ -105,4 +105,9 @@ struct Vals
   {
     return ((op * (Phase.Total - phase)) + eg * phase) / Phase.Total;
   }
+
+  Vals rescale(int k)
+  {
+    return Vals(op * k / 256, eg * k / 256);
+  }
 }

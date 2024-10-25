@@ -52,7 +52,7 @@ struct EvalInfo
 class EvalSmart : Eval
 {
   EvalInfo ei;
-  int[SQ.size][Color.size] candidate, passer, supported;
+  int[8] passer_scale;
   int[9] n_adj, r_adj;
 
   this(string tune = Tune.Def)
@@ -208,37 +208,20 @@ class EvalSmart : Eval
     auto unzero = (double x) => x > 0 ? x : .001;
     auto pscore = (double m, double k, int rank)
     {
-      auto nexp = (double k, int rank) => exp(k * rank) - 1;
-      return cast(int)(m * nexp(k, rank) / nexp(k, 8));
+      //auto nexp = (double k, int x) => exp(k * x) - 1;
+      auto nexp = (double k, int x) => 1 / (1 + exp(7 - k * x));
+      return cast(int)(m * nexp(k, rank) / nexp(k, 7));
     };
 
-    double k, m;
     for (int rank = 0; rank < 8; rank++)
     {
-      k = unzero(term[CandidateK]) / 32.0;
-      m = term[Candidate];
-      candidate[1][rank] = pscore(m, k, rank);
-
-      k = unzero(term[PasserK]) / 32.0;
-      m = term[Passer];
-      passer[1][rank] = pscore(m, k, rank);
-
-      k = unzero(term[PasserSupportK]) / 32.0;
-      m = term[PasserSupport];
-      supported[1][rank] = pscore(m, k, rank);
-    }
-
-    for (int rank = 0; rank < 8; rank++)
-    {
-      candidate[0][rank] = candidate[1][7 - rank];
-         passer[0][rank] =    passer[1][7 - rank];
-      supported[0][rank] = supported[1][7 - rank];
+      const double k = unzero(term[PasserK]) / 32.0;
+      passer_scale[rank] = pscore(256, k, rank);
     }
   }
 
-  // TODO: ability to self-explain position eval
-  //       change type for Val and collect data
-  //       into it (evaldebug mode)
+  // In this position can't recognize draw by stalemate (?)
+  // 8/2P5/8/8/3r4/8/2K5/k7 w - - 0 1; bm c7c8r; c0 "Underpromotion win!"
 
   // [Factors]
   // (Complexity/10)(Importance/10)=(5I-2C)
@@ -248,9 +231,6 @@ class EvalSmart : Eval
   // + mobility
   // + tempo
   //
-
-  // Something strange with undeveloped passers
-  //  maybe need to implement rule of square
 
   // + 58=30 passers & candidates
   // + 15=23 bishop pair
@@ -281,6 +261,7 @@ class EvalSmart : Eval
   // ? virtual piece placement (like in Critter)
   // ? space
   // ? connectivity
+
 
   // [passers testbed]
   //
@@ -357,7 +338,6 @@ class EvalSmart : Eval
     for (u64 bb = B.piece[p]; bb; bb = rlsb(bb))
     {
       const SQ sq = bitscan(bb);
-      const Color col = p.color;
 
       // pst
 
@@ -395,20 +375,84 @@ class EvalSmart : Eval
 
       if (!(Table.front(col, sq) & B.piece[p.opp]))
       {
-        u64 sentries = Table.att_span(col, sq) & B.piece[p.opp];
-        if (!sentries)
-        {
-          if (Table.psupport(col, sq) & B.piece[p])
-            vals += Vals.both(supported[col][sq.rank]);
-          else
-            vals += Vals.both(passer[col][sq.rank]);
-        }
-        else if (!rlsb(sentries))
-          vals += Vals.both(candidate[col][sq.rank]);
+        vals += eval_passer!col(B, sq);
       }
-
     }
     return vals;
+  }
+
+  // Something strange with undeveloped passers
+  //  maybe need to implement rule of square
+
+  // [Passers]
+  //
+  //  |types|
+  //
+  // - Unstoppable - not blocked frontspan
+  //               & opp has no pieces
+  //               & opp king not in square
+  //
+  // - King passer - our king controls pawn frontspan up to promotion
+  //               & our king is not blocking frontspan
+  //               & our pawn is under defence
+  //               & not works with a- and h-pawns (generally)
+  //
+  // - Free        - can make one more move forward, i.e.
+  //               = isn't blocked stop
+  //               & stop square is see-positive
+  //
+  // - Supported   - dangerous alliance
+  //
+  //  |factors|
+  //
+  // - Scale whole score by rank (non-linear)
+  // - Add bonus/penalty for king distances to stop square
+  // - Unstoppable passer will have huge bonus (rook..queen)
+
+  private Vals eval_passer(Color col)(const Board B, SQ sq)
+  {
+    int v;
+    const Piece p = BP.of(col);
+    const u64 sentries = Table.att_span(col, sq) & B.piece[p.opp];
+    int rank = col ? sq.rank : 7 - sq.rank;
+    const int scale = passer_scale[rank];
+
+    rank += rank == 1;
+
+    if (!sentries) // Passer
+    {
+      if (!(Table.front(col, sq) & B.occ[col]) // Unstoppable
+      &&  !B.has_pieces(col.opp))
+      {
+        SQ king = bitscan(B.piece[WK.of(col)]);
+        SQ prom = to_sq(sq.file, col ? 7 : 0);
+        int turn = cast(int)(B.color != col);
+
+        if (k_dist(king, prom) - turn > k_dist(sq, prom))
+        {
+          v = term[Unstoppable];
+        }
+      }
+      else if (false) // King passer
+      {
+
+      }
+      else if (Table.psupport(col, sq) & B.piece[p]) // Supported
+      {
+        v = term[Supported];
+      }
+    }
+    else if (only_one(sentries)) // Candidate
+    {
+      SQ j = bitscan(sentries); // simplest case
+      if (Table.front(col.opp, j) & B.piece[p])
+      {
+        v = term[Candidate];
+      }
+    }
+
+    v = v * scale / 256;
+    return Vals(v / 2, v);
   }
 
   private Vals evaluateN(Color col)(const Board B)
