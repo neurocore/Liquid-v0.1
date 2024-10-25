@@ -288,6 +288,8 @@ class SolverPVS : Solver
       if (move.is_empty) break;
       if (!B.make(move, undo)) continue;
 
+      undo.curr = move;
+
       legal++;
       int new_depth = depth - 1;
       int reduction = 0;
@@ -295,6 +297,25 @@ class SolverPVS : Solver
       // Extensions
 
       if (in_check) new_depth++;
+
+      if (depth + ply <= 2 * iter)
+      {
+        if (B.piece[WP] & move.from.bit && Rank6 & move.to.bit) new_depth++;
+        if (B.piece[BP] & move.from.bit && Rank3 & move.to.bit) new_depth++;
+
+        if (false) // recapture
+        {
+          Move last_move = ply > 0 ? (undo - 1).curr : Move.None;
+
+          if (!last_move.is_empty
+          &&  move.to == last_move.to
+          &&  last_move.is_cap
+          &&  move.is_cap)
+          {
+            new_depth++;
+          }
+        }
+      }
 
       // LMR
 
@@ -352,14 +373,22 @@ class SolverPVS : Solver
     return alpha;
   }
 
-  int qs(int alpha, int beta)
+  int qs(int alpha, int beta, int qply = 0)
   {
     //check_input();
 
     nodes++;
-    int stand_pat = B.eval(E);
-    if (stand_pat >= beta) return beta;
-    if (alpha < stand_pat) alpha = stand_pat;
+    max_ply = max(max_ply, ply);
+    bool in_check = B.in_check;
+
+    //if (!in_check)
+    {
+      int stand_pat = B.eval(E);
+      if (stand_pat >= beta) return beta;
+      if (stand_pat > alpha) alpha = stand_pat;
+    }
+
+    if (ply >= Limits.Plies) return B.eval(E);
 
     // Looking all attack moves
 
@@ -368,10 +397,14 @@ class SolverPVS : Solver
 
     foreach (Move move; ms)
     {
+      if (!in_check // SEE pruning (+100 elo)
+      &&  move.is_cap
+      &&  B.see(move) < 0) continue;
+
       if (move.is_empty) break;
       if (!B.make(move, undo)) continue;
 
-      int val = -qs(-beta, -alpha);
+      int val = -qs(-beta, -alpha, qply + 1);
 
       B.unmake(move, undo);
 
