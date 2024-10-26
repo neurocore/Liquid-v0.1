@@ -86,7 +86,7 @@ class SolverPVS : Solver
       if (move.is_empty) break;
       if (!B.make(move, undo)) continue;
 
-      if (mode == Mode.Game) write(move, " - ");
+      if (mode == Mode.Game) writef("%v - ", move);
 
       u64 cnt = perft_inner(depth - 1);
       count += cnt;
@@ -153,7 +153,7 @@ class SolverPVS : Solver
       if (val > Val.Mate || val < -Val.Mate) break;
     }
 
-    say("bestmove ", best);
+    sayf("bestmove %s", best);
     stdout.flush();
 
     thinking = false;

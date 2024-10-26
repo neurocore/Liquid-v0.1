@@ -320,7 +320,8 @@ class Board
 
   int see(Move move) const
   {
-    assert(move.is_cap);
+    //import std.stdio;
+    //assert(move.is_cap); // works also for pawn pushes (!prom)
 
     u64 least_valuable_piece(u64 attadef, Color col, ref int p)
     {
@@ -351,11 +352,15 @@ class Board
     u64 o       = occ[0] | occ[1];
     u64 xrayers = o ^ piece[BN] ^ piece[WN] ^ piece[BK] ^ piece[WK];
     u64 from_bb = move.from.bit;
-    u64 attadef = get_attacks(o, move.to);
+    u64 attadef = get_attacks(o, move.to) | from_bb;
     gain[d]     = value[square[move.to]];
 
     do
     {
+      //writeln(attadef.to_bitboard);
+      //writeln(o.to_bitboard);
+      //writefln("gain[%d] = %d", d, gain[d]);
+
       d++;
       gain[d]  = value[p] - gain[d - 1]; // speculative store, if defended
       attadef ^= from_bb; // reset bit in set to traverse

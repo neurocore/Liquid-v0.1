@@ -2,7 +2,7 @@ module eval_smart;
 import std.math : exp;
 import eval, tables, piece, square, consts;
 import app, board, bitboard, types, utils;
-import vals;
+import vals, moves;
 
 // from Toga, i suppose
 enum AttWeight { Light = 2, Rook = 3, Queen = 5 };
@@ -220,9 +220,6 @@ class EvalSmart : Eval
     }
   }
 
-  // In this position can't recognize draw by stalemate (?)
-  // 8/2P5/8/8/3r4/8/2K5/k7 w - - 0 1; bm c7c8r; c0 "Underpromotion win!"
-
   // [Factors]
   // (Complexity/10)(Importance/10)=(5I-2C)
   //
@@ -266,8 +263,8 @@ class EvalSmart : Eval
   // [passers testbed]
   //
   // 2n1k3/p7/3B2K1/2P2p1p/8/4P1P1/5P1P/8 b - - 0 46; bm c8d6; c0 "Far passer not in king square"
-  // 8/p1p5/6pp/PPP2k2/8/4PK2/8/8 w - - 0 43; bm b5b6; c0 "Classic pawn breakthrough"
   // 7K/8/k1P5/7p/8/8/8/8 w - -; bm h8g7; c0 "Reti etude"
+  // 1k6/8/1P6/3P3P/2K5/5n2/8/8 w - - 1 10; bm d5d6; bm h5h6
 
   // "taken from the book Pawn endings by A. Cetkov and
   // fundamental Chess Endings by K. Muller & F. Lamprecht"
@@ -381,37 +378,34 @@ class EvalSmart : Eval
     return vals;
   }
 
-  // Something strange with undeveloped passers
-  //  maybe need to implement rule of square
-
   // [Passers]
   //
   //  |types|
   //
-  // - Unstoppable - not blocked frontspan
+  // + Unstoppable - not blocked frontspan
   //               & opp has no pieces
   //               & opp king not in square
   //
-  // - King passer - our king controls pawn frontspan up to promotion
+  // + King passer - our king controls pawn frontspan up to promotion
   //               & our king is not blocking frontspan
   //               & our pawn is under defence
   //               & not works with a- and h-pawns (generally)
   //
-  // - Free        - can make one more move forward, i.e.
+  // + Free        - can make one more move forward, i.e.
   //               = isn't blocked stop
   //               & stop square is see-positive
   //
-  // - Supported   - dangerous alliance
+  // + Supported   - dangerous alliance
   //
   //  |factors|
   //
-  // - Scale whole score by rank (non-linear)
-  // - Add bonus/penalty for king distances to stop square
-  // - Unstoppable passer will have huge bonus (rook..queen)
+  // + Scale whole score by rank (non-linear)
+  // + Add bonus/penalty for king distances to stop square
+  // + Unstoppable passer will have huge bonus (rook..queen)
 
   private Vals eval_passer(Color col)(const Board B, SQ sq)
   {
-    int v;
+    int v = 0;
     const Piece p = BP.of(col);
     const u64 sentries = Table.att_span(col, sq) & B.piece[p.opp];
     int rank = col ? sq.rank : 7 - sq.rank;
@@ -421,6 +415,8 @@ class EvalSmart : Eval
 
     if (!sentries) // Passer
     {
+      v += term[Passer] * scale / 256;
+
       if (!(Table.front(col, sq) & B.occ[col]) // Unstoppable
       &&  !B.has_pieces(col.opp))
       {
@@ -428,18 +424,56 @@ class EvalSmart : Eval
         SQ prom = to_sq(sq.file, col ? 7 : 0);
         int turn = cast(int)(B.color != col);
 
+        // opp king is not in square
         if (k_dist(king, prom) - turn > k_dist(sq, prom))
         {
-          v = term[Unstoppable];
+          v += term[Unstoppable];
         }
       }
-      else if (false) // King passer
+      else
+      if (!(sq.bit & (FileA | FileH)) // King passer
+      &&  !B.has_pieces(col.opp))
       {
+        SQ king = bitscan(B.piece[BK.of(col)]);
+        SQ prom = to_sq(sq.file, col ? 7 : 0);
 
+        // own king controls all promote path
+        if (king.file != sq.file
+        &&  k_dist(king, sq) <= 1
+        &&  k_dist(king, prom) <= 1)
+        {
+          v += term[Unstoppable];
+        }
       }
-      else if (Table.psupport(col, sq) & B.piece[p]) // Supported
+      else // Bonuses for increasing passers potential
       {
-        v = term[Supported];
+        if (Table.psupport(col, sq) & B.piece[p]) // Supported
+        {
+          v += term[Supported] * scale / 256;
+        }
+
+        u64 o = B.occ[0] | B.occ[1];
+        if (!(Table.front_one(col, sq) & o)) // Free passer
+        {
+          SQ stop = col ? sq.add(8) : sq.sub(8);
+          Move move = Move(sq, stop);
+          if (B.see(move) > 0)
+          {
+            v += term[FreePasser];
+          }
+        }
+
+        // King tropism to stop square
+
+        SQ stop = col ? sq.add(8) : sq.sub(8);
+        SQ king_own = bitscan(B.piece[BK.of(col)]);
+        SQ king_opp = bitscan(B.piece[WK.of(col)]);
+        int tropism = 0;
+
+        tropism -=  5 * k_dist(king_own, stop);
+        tropism += 20 * k_dist(king_opp, stop);
+
+        if (tropism > 0) v += tropism;
       }
     }
     else if (only_one(sentries)) // Candidate
@@ -447,11 +481,10 @@ class EvalSmart : Eval
       SQ j = bitscan(sentries); // simplest case
       if (Table.front(col.opp, j) & B.piece[p])
       {
-        v = term[Candidate];
+        v += term[Candidate] * scale / 256;
       }
     }
 
-    v = v * scale / 256;
     return Vals(v / 2, v);
   }
 

@@ -134,15 +134,13 @@ class Engine
   {
     Move move = B.recognize(mv);
 
-    if (move.is_cap)
+    if (!move.is_cap)
     {
-      int score = B.see(move);
-      print_message(format!"SEE(%v) = %d"(move, score));
+      print_message(format!"%s is not a capture (result may be unpredictable)"(move));
     }
-    else
-    {
-      print_message(format!"%v is not a capture"(move));
-    }
+
+    int score = B.see(move);
+    print_message(format!"SEE(%s) = %d"(move, score));
   }
 
   void set_debug(bool val)

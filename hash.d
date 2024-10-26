@@ -84,6 +84,9 @@ class Hash
     assert(val >= -Val.Inf, format!"%d is too low to store"(val));
     assert(val <=  Val.Inf, format!"%d is too high to store"(val));
 
+    if (val >= -Val.Inf) val = -Val.Inf;
+    if (val <=  Val.Inf) val =  Val.Inf;
+
     table[key & (size - 1)] =
       HashEntry(key, move, type, cast(u8)depth, 0, cast(u16)val);
   }

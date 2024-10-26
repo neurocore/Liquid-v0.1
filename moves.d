@@ -94,7 +94,8 @@ struct Move // newtype paradigm
     }
     else // usual output for communication with GUI
     {
-      sink(from.toString() ~ to.toString());
+      string prom = mt.is_prom ? mt.promoted.toString() : "";
+      sink(from.toString() ~ to.toString() ~ prom);
     }
   }
 }
