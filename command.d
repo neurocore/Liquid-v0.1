@@ -141,6 +141,14 @@ class Cmd_See : Cmd
   }
 }
 
+class Cmd_Eval : Cmd
+{
+  override void execute(Engine E)
+  {
+    E.eval();
+  }
+}
+
 class Cmd_Bench : Cmd
 {
   private string file;

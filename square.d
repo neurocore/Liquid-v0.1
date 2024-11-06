@@ -17,6 +17,13 @@ enum SQ : u8
 }
 mixin(GenAliases!SQ);
 
+const SQ SwapVert = to_sq(7, 0);
+const SQ SwapHori = to_sq(0, 7);
+const SQ SwapBoth = to_sq(7, 7);
+
+enum Axis : u8 { Vert, Hori, Both }
+mixin(GenAliases!Axis);
+
 string toString(SQ sq)
 {
   char fileChar = to!char('a' + sq.file);
@@ -34,6 +41,22 @@ SQ sub(SQ a, int shift)
 {
   int b = a - shift;
   return b < A1 ? SQ.None : cast(SQ)b;
+}
+
+SQ mirror(Axis a)(SQ sq)
+{
+  static if (a == Hori)
+  {
+    return cast(SQ)(sq ^ SwapHori);
+  }
+  else if (a == Vert)
+  {
+    return cast(SQ)(sq ^ SwapVert);
+  }
+  else if (a == Both)
+  {
+    return cast(SQ)(sq ^ SwapBoth);
+  }
 }
 
 int rank(const SQ x) { return x >> 3; }

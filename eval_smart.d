@@ -1,8 +1,8 @@
 module eval_smart;
-import std.math : exp;
+import std.math : exp, sqrt;
 import eval, tables, piece, square, consts;
 import app, board, bitboard, types, utils;
-import vals, moves;
+import vals, moves, kpk;
 
 // from Toga, i suppose
 enum AttWeight { Light = 2, Rook = 3, Queen = 5 };
@@ -265,6 +265,7 @@ class EvalSmart : Eval
   // 2n1k3/p7/3B2K1/2P2p1p/8/4P1P1/5P1P/8 b - - 0 46; bm c8d6; c0 "Far passer not in king square"
   // 7K/8/k1P5/7p/8/8/8/8 w - -; bm h8g7; c0 "Reti etude"
   // 1k6/8/1P6/3P3P/2K5/5n2/8/8 w - - 1 10; bm d5d6; bm h5h6
+  // 8/2p2pk1/5p2/P4Pp1/3P3p/P7/2PK1P2/8 b - - 0 31; c0 "Must eval for black win"
 
   // "taken from the book Pawn endings by A. Cetkov and
   // fundamental Chess Endings by K. Muller & F. Lamprecht"
@@ -370,9 +371,12 @@ class EvalSmart : Eval
 
       // passers
 
-      if (!(Table.front(col, sq) & B.piece[p.opp]))
+      if (!(Table.front(col, sq) & B.piece[p.opp])
+      &&  !(Table.front(col, sq) & B.piece[p])) // not doubled
       {
-        vals += eval_passer!col(B, sq);
+        auto pass = eval_passer!col(B, sq);
+        //log(sq, " = ", pass.eg);
+        vals += pass;
       }
     }
     return vals;
@@ -405,13 +409,28 @@ class EvalSmart : Eval
 
   private Vals eval_passer(Color col)(const Board B, SQ sq)
   {
+    const SQ king = bitscan(B.piece[BK.of(col)]);
+    const SQ kopp = bitscan(B.piece[WK.of(col)]);
+
+    // kpk probe
+    int kpk = 0;
+    if (!B.has_pieces(col) && !B.has_pieces(col.opp))
+    {
+      int win = Kpk.probe!col(col, king, sq, kopp);
+      if (win > 0)
+      {
+        int pawns = popcnt(B.piece[BP] | B.piece[WP]);
+        if (pawns == 1) kpk += term[Unstoppable];
+      }
+    }
+
     int v = 0;
     const Piece p = BP.of(col);
     const u64 sentries = Table.att_span(col, sq) & B.piece[p.opp];
     int rank = col ? sq.rank : 7 - sq.rank;
+    rank += rank == 1; // double pawn move
+    rank += B.color == col; // tempo
     const int scale = passer_scale[rank];
-
-    rank += rank == 1;
 
     if (!sentries) // Passer
     {
@@ -420,12 +439,11 @@ class EvalSmart : Eval
       if (!(Table.front(col, sq) & B.occ[col]) // Unstoppable
       &&  !B.has_pieces(col.opp))
       {
-        SQ king = bitscan(B.piece[WK.of(col)]);
         SQ prom = to_sq(sq.file, col ? 7 : 0);
         int turn = cast(int)(B.color != col);
 
         // opp king is not in square
-        if (k_dist(king, prom) - turn > k_dist(sq, prom))
+        if (k_dist(kopp, prom) - turn > k_dist(sq, prom))
         {
           v += term[Unstoppable];
         }
@@ -434,7 +452,6 @@ class EvalSmart : Eval
       if (!(sq.bit & (FileA | FileH)) // King passer
       &&  !B.has_pieces(col.opp))
       {
-        SQ king = bitscan(B.piece[BK.of(col)]);
         SQ prom = to_sq(sq.file, col ? 7 : 0);
 
         // own king controls all promote path
@@ -485,6 +502,7 @@ class EvalSmart : Eval
       }
     }
 
+    v += kpk;
     return Vals(v / 2, v);
   }
 

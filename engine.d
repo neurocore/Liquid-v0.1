@@ -6,6 +6,7 @@ import consts, command, moves;
 import piece, board, protocol;
 import solver, solver_pvs, utils;
 import app, epd, timer, options;
+import eval_smart;
 
 class Engine
 {
@@ -141,6 +142,12 @@ class Engine
 
     int score = B.see(move);
     print_message(format!"SEE(%s) = %d"(move, score));
+  }
+
+  void eval()
+  {
+    int eval = B.eval(new EvalSmart);
+    print_message(format!"Eval = %d"(eval));
   }
 
   void set_debug(bool val)

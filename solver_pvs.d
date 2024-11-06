@@ -1,7 +1,7 @@
 module solver_pvs;
 import std.stdio, std.string, std.format;
 import std.algorithm: min, max;
-import types, solver, movelist, gen, timer;
+import types, solver, movelist, timer;
 import square, board, bitboard, moves;
 import consts, engine, piece, utils;
 import app, hash, eval, eval_smart;

@@ -5,6 +5,14 @@ import consts, bitboard, moves;
 
 enum HashType : u8 { Alpha, Beta, Exact, Bad }
 
+// [Hash improvements]
+//
+// - Add 4-bucket system
+// - Add aging
+// - Re-check all keys
+// - Re-check scores
+// - Return hash fill %
+
 struct HashEntry // 16 bytes (POD)
 {
   u64 key = 0UL;                 // 8

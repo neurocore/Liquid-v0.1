@@ -116,6 +116,10 @@ public:
       string mv = reader.get_word();
       return new Cmd_See(Move(mv));
     }
+    else if (cmd == "eval")
+    {
+      return new Cmd_Eval();
+    }
     else if (cmd == "register")
     {
       return new Cmd_Response("registration ok");
