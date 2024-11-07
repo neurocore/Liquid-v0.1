@@ -65,6 +65,7 @@ struct Tune
            ~ "Doubled:10 "
            ~ "Isolated:9 "
            ~ "Backward:12 "
+           ~ "WeaknessPush:50 "
            ~ "NMob:64 "
            ~ "BMob:64 "
            ~ "RMob:48 "

@@ -20,6 +20,7 @@ enum Term
   QueenCenterOp, QueenCenterEg, QueenBackRank,
   KingFile, KingRank, KingCenterEg,
   Doubled, Isolated, Backward,
+  WeaknessPush,
   NMob, BMob, RMob, QMob,
   BishopPair, BadBishop,
   KnightOutpost,

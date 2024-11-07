@@ -21,15 +21,24 @@ const int[100] safety_table =
   500, 500, 500, 500, 500, 500, 500, 500, 500, 500
 ];
 
+const int[] weakness_push_table =
+[
+  128, 106, 86, 68, 52, 38, 26, 16, 8, 2
+];
+
+
 struct EvalInfo
 {
   int[Color.size] att_weight;
   int[Color.size] att_count;
+  SQ[][Color.size] eg_weak;
 
   void clear()
   {
     att_weight.zeros;
     att_count.zeros;
+    eg_weak[0] = [];
+    eg_weak[1] = [];
   }
 
   void add_attack(Color col, AttWeight amount, int count = 1)
@@ -46,6 +55,22 @@ struct EvalInfo
   int king_safety() const
   {
     return king_safety(White) - king_safety(Black);
+  }
+
+  void add_weak(Color col, SQ sq)
+  {
+    eg_weak[col] ~= sq;
+  }
+
+  int weak_push(Color col, SQ king, int bonus)
+  {
+    int max = 0;
+    foreach (sq; eg_weak[col])
+    {
+      int val = weakness_push_table[k_dist(king, sq)];
+      if (val > max) max = val;
+    }
+    return max * bonus / 128;
   }
 }
 
@@ -208,7 +233,6 @@ class EvalSmart : Eval
     auto unzero = (double x) => x > 0 ? x : .001;
     auto pscore = (double m, double k, int rank)
     {
-      //auto nexp = (double k, int x) => exp(k * x) - 1;
       auto nexp = (double k, int x) => 1 / (1 + exp(7 - k * x));
       return cast(int)(m * nexp(k, rank) / nexp(k, 7));
     };
@@ -238,6 +262,9 @@ class EvalSmart : Eval
   // + 35=19 pawns doubled, isolated, backward
   // + 14=18 rook/knight adjustments
   // + 37=29 early queen penalty
+  // + 14=18 sliding pieces support
+  // + 24=16 50-moves rule
+  // + 35=19 pawn eg key squares
 
   // [king safety]
   // + 78=26 attacks counts
@@ -247,10 +274,10 @@ class EvalSmart : Eval
 
   // - 57=25 xrays & pins
   // - 24=16 contact check
-  // - 34=14 blockage patterns
+  // - 55=15 outposts
+  // - 34=14 op blockage patterns
   // - 34=14 bad rook
   // - 33= 9 bad bishop
-  // - 53= 5 outposts
 
   // [Further improvements]
   //
@@ -313,7 +340,8 @@ class EvalSmart : Eval
     val += evaluate(B); // collecting ei
     val += ei.king_safety();
 
-    return (B.color == White ? val : -val) + term[Tempo];
+    int score = (B.color == White ? val : -val) + term[Tempo];
+    return score * (100 - B.state.fifty) / 100;
   }
 
   private int evaluate(const Board B)
@@ -350,29 +378,38 @@ class EvalSmart : Eval
 
       // doubled
 
-      u64 back = Table.front(col.opp, sq) & B.piece[p];
-      u64 fore = Table.front(col, sq) & B.piece[p];
+      u64 back_friendly = Table.front(col.opp, sq) & B.piece[p];
+      u64 fore_friendly = Table.front(col, sq) & B.piece[p];
 
-      if (back && !fore)
+      if (back_friendly && !fore_friendly) // most advanced one
       {
-        vals -= Vals.both(popcnt(back) * term[Doubled]);
+        vals -= Vals.both(popcnt(back_friendly) * term[Doubled]);
+      }
+
+      // blocked weak
+
+      u64 cannot_pass = Table.front(col, sq) & B.piece[p.opp];
+      u64 has_support = Table.att_rear(col, sq) & B.piece[p];
+      u64 has_sentry = Table.att_span(col, sq) & B.piece[p.opp];
+
+      if (cannot_pass && !has_support)
+      {
+        ei.add_weak(col, sq);
       }
 
       // backward
 
-      bool developed = col ? sq.rank > 3 : sq.rank < 4;
-
-      if (!developed
-      &&  !(Table.att_span(col.opp, sq) & B.piece[p])
-      &&    Table.att_span(col, sq) & B.piece[p.opp])
+      if (!has_support && has_sentry)
       {
-        vals -= Vals.both(term[Backward]);
+        bool developed = col ? sq.rank > 3 : sq.rank < 4;
+        if (!developed) vals -= Vals.both(term[Backward]);
+
+        ei.add_weak(col, sq);
       }
 
       // passers
 
-      if (!(Table.front(col, sq) & B.piece[p.opp])
-      &&  !(Table.front(col, sq) & B.piece[p])) // not doubled
+      if (!cannot_pass && !fore_friendly)
       {
         auto pass = eval_passer!col(B, sq);
         //log(sq, " = ", pass.eg);
@@ -553,7 +590,8 @@ class EvalSmart : Eval
     for (u64 bb = B.piece[p]; bb; bb = rlsb(bb))
     {
       const SQ sq = bitscan(bb);
-      const u64 att = B.attack(p, sq);
+      const u64 o = B.occ[0] | B.occ[1] ^ B.piece[BQ.of(col)];
+      const u64 att = B.attack(p, sq, o);
 
       // king attacks
 
@@ -588,7 +626,8 @@ class EvalSmart : Eval
     for (u64 bb = B.piece[p]; bb; bb = rlsb(bb))
     {
       const SQ sq = bitscan(bb);
-      const u64 att = B.attack(p, sq);
+      const u64 o = B.occ[0] | B.occ[1] ^ B.piece[BQ.of(col)];
+      const u64 att = B.attack(p, sq, o);
 
       // king attacks
 
@@ -692,6 +731,11 @@ class EvalSmart : Eval
       // pst
 
       vals += pst[p][sq];
+
+      // pawn weakness
+
+      const int push = ei.weak_push(col.opp, sq, term[WeaknessPush]);
+      vals += Vals.as_eg(push);
 
       // pawn shield
 

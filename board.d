@@ -120,6 +120,11 @@ class Board
     return cast(bool)pieces;
   }
 
+  bool is_pawn_eg(Color col) const
+  {
+    return !has_pieces(col.opp) && (piece[WP.of(col)] != 0);
+  }
+
   Color to_move() const
   {
     return color;
@@ -851,9 +856,18 @@ class Board
 
   u64 attack(PieceType pt)(SQ sq) const
   {
-    if      (pt == Bishop) return b_att(occ[0] | occ[1], sq);
-    else if (pt == Rook)   return r_att(occ[0] | occ[1], sq);
-    else if (pt == Queen)  return q_att(occ[0] | occ[1], sq);
+    static if (pt == Bishop) return b_att(occ[0] | occ[1], sq);
+    else   if (pt == Rook)   return r_att(occ[0] | occ[1], sq);
+    else   if (pt == Queen)  return q_att(occ[0] | occ[1], sq);
+
+    return Table.atts(to_piece(pt, Black), sq);
+  }
+
+  u64 attack(PieceType pt)(SQ sq, u64 o) const
+  {
+    static if (pt == Bishop) return b_att(o, sq);
+    else   if (pt == Rook)   return r_att(o, sq);
+    else   if (pt == Queen)  return q_att(o, sq);
 
     return Table.atts(to_piece(pt, Black), sq);
   }
@@ -865,6 +879,17 @@ class Board
       case BB: case WB: return attack!Bishop(sq);
       case BR: case WR: return attack!Rook(sq);
       case BQ: case WQ: return attack!Queen(sq);
+      default: return Table.atts(p, sq);
+    }
+  }
+
+  u64 attack(Piece p, SQ sq, u64 o) const
+  {
+    switch (p)
+    {
+      case BB: case WB: return attack!Bishop(sq, o);
+      case BR: case WR: return attack!Rook(sq, o);
+      case BQ: case WQ: return attack!Queen(sq, o);
       default: return Table.atts(p, sq);
     }
   }

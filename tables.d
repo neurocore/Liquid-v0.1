@@ -32,7 +32,7 @@ Rays rook_offset = [[-1, 0], [0, 1], [1, 0], [0,-1]];
 //   -O-       -O-     -O-       xOx       xOx       xOx
 //   ---       ---     ---       x-x       x-x       x-x
 //   ---       ---     ---       x-x       x-x       ---
-        
+
 // isolator = att_span | att_rear
 // psupport = (rank | backrank) & isolator
 
