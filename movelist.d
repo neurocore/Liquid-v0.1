@@ -3,10 +3,24 @@ import consts, square, moves;
 import piece, board, solver;
 import utils, types;
 
+alias History = u64[64][64][2];
+
 struct MoveVal
 {
   Move move;
   i64 val;
+}
+
+enum PromMode
+{
+  N = 1 << 0,
+  B = 1 << 1,
+  R = 1 << 2,
+  Q = 1 << 3,
+
+  QS  =             Q,
+  PVS = N |     R | Q,
+  ALL = N | B | R | Q,
 }
 
 enum Step
@@ -88,20 +102,20 @@ class MoveList
     add(Move(from, to, mt));
   }
 
-  void add_prom(SQ from, SQ to)
+  void add_prom(SQ from, SQ to, PromMode mode = PromMode.ALL)
   {
-    add(Move(from, to, MT.QProm));
-    add(Move(from, to, MT.RProm));
-    add(Move(from, to, MT.BProm));
-    add(Move(from, to, MT.NProm));
+    if (mode & PromMode.Q) add(Move(from, to, MT.QProm));
+    if (mode & PromMode.R) add(Move(from, to, MT.RProm));
+    if (mode & PromMode.B) add(Move(from, to, MT.BProm));
+    if (mode & PromMode.N) add(Move(from, to, MT.NProm));
   }
 
-  void add_capprom(SQ from, SQ to)
+  void add_capprom(SQ from, SQ to, PromMode mode = PromMode.ALL)
   {
-    add(Move(from, to, MT.QCapProm));
-    add(Move(from, to, MT.RCapProm));
-    add(Move(from, to, MT.BCapProm));
-    add(Move(from, to, MT.NCapProm));
+    if (mode & PromMode.Q) add(Move(from, to, MT.QCapProm));
+    if (mode & PromMode.R) add(Move(from, to, MT.RCapProm));
+    if (mode & PromMode.B) add(Move(from, to, MT.BCapProm));
+    if (mode & PromMode.N) add(Move(from, to, MT.NCapProm));
   }
 
   void remove_move(Move move)
@@ -130,7 +144,7 @@ class MoveList
     }
   }
 
-  void value_moves(bool att = false)(ref Board board, ref u64[64][64][2] history)
+  void value_moves(bool att = false)(ref Board board, ref History history)
   {
     const int[] cost = [1, 1, 3, 3, 3, 3, 5, 5, 9, 9, 200, 200, 0, 0];
     const int[] prom = [0, cost[WN], cost[WB], cost[WR], cost[WQ], 0];
@@ -202,9 +216,10 @@ class MoveSeries
     hash_mv = Move.None;
   }
 
-  void init(bool att = false, Move hashmove = Move.None)
+  void init(bool att = false, Move hashmove = Move.None, PromMode pmode = PromMode.ALL)
   {
     qs = att;
+    this.pmode = pmode;
     step = qs ? Step.GenCaps : Step.Hash;
     hash_mv = Move.None;
     ml.clear();
@@ -217,6 +232,7 @@ class MoveSeries
   }
 
   bool empty() const { return step == Step.Done; }
+  Step get_step() const { return step; }
   void popFront() { ml.remove_curr(); }
 
   void remove_hash_move()
@@ -246,7 +262,7 @@ class MoveSeries
       case Step.GenCaps:
         //writeln("Step.GenCaps");
         step++;
-        B.generate!1(ml);
+        B.generate!1(ml, pmode);
         remove_hash_move();
         ml.value_moves!1(*B, history);
         goto case;
@@ -280,8 +296,8 @@ class MoveSeries
 
       case Step.GenKillers:
         //writeln("Step.GenKillers");
-        if (!killer[0].is_empty) ml.add(killer[0], Order.Killer1);
-        if (!killer[1].is_empty) ml.add(killer[1], Order.Killer2);
+        if (B.is_allowed(killer[0])) ml.add(killer[0], Order.Killer1);
+        if (B.is_allowed(killer[1])) ml.add(killer[1], Order.Killer2);
         step++;
         goto case;
 
@@ -298,7 +314,7 @@ class MoveSeries
       case Step.GenQuiets:
         //writeln("Step.GenQuiets");
         step++;
-        B.generate!0(ml);
+        B.generate!0(ml, pmode);
         remove_hash_and_killers();
         ml.value_moves!0(*B, history);
         goto case;
@@ -335,11 +351,12 @@ class MoveSeries
 
 public:
   Move[2] killer;
-  u64[64][64][2] history;
+  History history;
 
 private:
   Board * B;
   MoveList ml;
+  PromMode pmode;
   Move hash_mv;
   Step step;
   bool qs;

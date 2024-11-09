@@ -198,9 +198,9 @@ class Board
 
   void remove(bool full = true)(SQ sq)
   {
-    import std.format;
+    import std.format, std.exception;
     Piece p = square[sq];
-    assert(p < Piece.size, format("no piece to remove\n%s\nSQ = %s", this, sq));
+    enforce(p < Piece.size, format("no piece to remove\n%s\nSQ = %s", this, sq));
 
     piece[p]     ^= sq.bit;
     occ[p.color] ^= sq.bit;
@@ -448,19 +448,25 @@ class Board
     if (!(piece[p] & from.bit)) return false; // and placed on from
     if (p.color != color) return false;      // playing own pieces
 
+    if (!mt.is_cap && square[to] < Piece.size) return false;
+
     if (mt.is_castle) // castlings
     {
+      const u64 o = occ[0] | occ[1];
+
       if (p == WK)
       {
         if (from != E1) return false;
-        if (to != G1 && to != C1) return false;
+        if (to == G1) return (state.castling & Castling.WK) && !(o & Span.WK);
+        if (to == C1) return (state.castling & Castling.WQ) && !(o & Span.WQ);
       }
       else if (p == BK)
       {
         if (from != E8) return false;
-        if (to != G8 && to != C8) return false;
+        if (to == G8) return (state.castling & Castling.BK) && !(o & Span.BK);
+        if (to == C8) return (state.castling & Castling.BQ) && !(o & Span.BQ);
       }
-      else return false;
+      return false;
     }
     else if (p < BN) // pawn moves
     {
@@ -696,6 +702,8 @@ class Board
 
       default:
       {
+        import std.exception;
+        enforce(square[to] == Piece.NOP);
         remove(from);
         place(to, p);
 
@@ -909,7 +917,7 @@ class Board
     }
   }
 
-  void generate(bool captures, ML)(ML ml) const
+  void generate(bool captures, ML)(ML ml, PromMode pmode) const
   {
     const u64 me = occ[color];
     const u64 opp = occ[color.opp()];
@@ -949,7 +957,7 @@ class Board
         for (u64 bb = piece[p] & shift_d(~o); bb; bb = rlsb(bb))
         {
           SQ s = bitscan(bb);
-          if (rank(s) == 6) ml.add_prom(s, s.add(8));
+          if (rank(s) == 6) ml.add_prom(s, s.add(8), pmode);
           else              ml.add_move(s, s.add(8));
         }
       }
@@ -993,7 +1001,7 @@ class Board
       for (u64 bb = piece[p] & shift_u(~o); bb; bb = rlsb(bb)) // Forward & promotion
       {
         SQ s = bitscan(bb);
-        if (rank(s) == 1) ml.add_prom(s, s.sub(8));
+        if (rank(s) == 1) ml.add_prom(s, s.sub(8), pmode);
         else              ml.add_move(s, s.sub(8));
       }
 

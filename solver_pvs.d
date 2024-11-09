@@ -281,7 +281,7 @@ class SolverPVS : Solver
     // Looking all legal moves
 
     auto ms = undo.ms;
-    ms.init(false, hash_move);
+    ms.init(false, hash_move, PromMode.PVS);
 
     foreach (Move move; ms)
     {
@@ -393,7 +393,7 @@ class SolverPVS : Solver
     // Looking all attack moves
 
     auto ms = undo.ms;
-    ms.init(true);
+    ms.init(true, Move.None, PromMode.PVS);
 
     foreach (Move move; ms)
     {
@@ -428,11 +428,11 @@ class SolverPVS : Solver
           undo.ms.history[color][i][j] >>= 1;
     }
 
-    //if (undo.ms.killer[0] != move) // why it ruins the whole
-    //{
-    //  undo.ms.killer[1] = undo.ms.killer[0];
-    //  undo.ms.killer[0] = move;
-    //}
+    if (undo.ms.killer[0] != move)
+    {
+      undo.ms.killer[1] = undo.ms.killer[0];
+      undo.ms.killer[0] = move;
+    }
   }
 
 private:

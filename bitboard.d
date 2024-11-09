@@ -1,44 +1,25 @@
 module bitboard;
+import core.bitop;
 import types, square;
 
 enum : u64
 {
-  Empty    = 0x0000000000000000,
-  Full     = 0xFFFFFFFFFFFFFFFF,
-  Bit      = 0x0000000000000001,
-  Light    = 0xaa55aa55aa55aa55,
-  Dark     = 0x55aa55aa55aa55aa,
-
-  Debruijn = 0x03f79d71b4cb0a89,
+  Empty = 0x0000000000000000,
+  Full  = 0xFFFFFFFFFFFFFFFF,
+  Bit   = 0x0000000000000001,
+  Light = 0xaa55aa55aa55aa55,
+  Dark  = 0x55aa55aa55aa55aa,
 }
 
-immutable u32[64] bitscan64 =
-[
-   0,  1, 48,  2, 57, 49, 28,  3,
-  61, 58, 50, 42, 38, 29, 17,  4,
-  62, 55, 59, 36, 53, 51, 43, 22,
-  45, 39, 33, 30, 24, 18, 12,  5,
-  63, 47, 56, 27, 60, 41, 37, 16,
-  54, 35, 52, 21, 44, 32, 23, 11,
-  46, 26, 40, 15, 34, 20, 31, 10,
-  25, 14, 19,  9, 13,  8,  7,  6
-];
-
-immutable u32[0x10000] LUT = () @safe pure nothrow
+SQ bitscan(u64 bb)
 {
-  u32[0x10000] arr;
-  foreach (u16 i; 0 .. 0x10000)
-  {
-    arr[i] = 0;
-    u16 n = i;
-    while (n != 0)
-    {
-      arr[i]++;
-      n &= n - 1;
-    }
-  }
-  return arr;
-}();
+  return cast(SQ)bsf(bb);
+}
+
+u32 popcnt(u64 bb)
+{
+  return core.bitop.popcnt(bb);
+}
 
 u64 bit(SQ sq) { return Bit << cast(int)sq; }
 u64 bits(SQ[] sqs)
@@ -74,21 +55,6 @@ u64 set(u64 bb, SQ index)
 u64 reset(u64 bb, SQ index)
 {
   return bb & !index.bit;
-}
-
-SQ bitscan(u64 bb)
-{
-  u16 i = (bb.lsb() * Debruijn) >> 58;
-  return cast(SQ)bitscan64[i];
-}
-
-u32 popcnt(u64 bb)
-{
-  u16 h0 =  bb >> 48;
-  u16 h1 = (bb >> 32) & 0xFFFF;
-  u16 h2 = (bb >> 16) & 0xFFFF;
-  u16 h3 =  bb        & 0xFFFF;
-  return LUT[h0] + LUT[h1] + LUT[h2] + LUT[h3];
 }
 
 string to_bitboard(u64 bb)

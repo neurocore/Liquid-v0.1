@@ -24,6 +24,13 @@ class Engine
     options = new Options;
   }
 
+  ~this()
+  {
+    stdin.close();
+    //stdin.write("quit");
+    //tid_input.wait();
+  }
+
   Board board() { return B; }
 
   void start()
@@ -94,6 +101,11 @@ class Engine
     return result;
   }
 
+  void tuning()
+  {
+    
+  }
+
   void print_message(string message)
   {
     debug
@@ -104,7 +116,7 @@ class Engine
     {
       if (options.flag_debug)
       {
-        say("info string %s", message);
+        sayf("info string %s", message);
         stdout.flush();
       }
     }
@@ -146,8 +158,10 @@ class Engine
 
   void eval()
   {
-    int eval = B.eval(new EvalSmart);
-    print_message(format!"Eval = %d"(eval));
+    EvalReport er;
+    auto E = new EvalSmart;
+    int eval = E.eval_explained(B, er);
+    print_message(format!"Eval = %d\n%s"(eval, er));
   }
 
   void set_debug(bool val)
