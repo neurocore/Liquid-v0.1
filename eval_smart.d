@@ -4,6 +4,38 @@ import eval, tables, piece, square, consts;
 import app, board, bitboard, types, utils;
 import vals, moves, kpk;
 
+enum PasserStatus { None, Candidate, Passer, Unstoppable, King, Kpk }
+
+struct DebugPasser
+{
+  SQ sq;
+  PasserStatus status;
+  bool free, supported;
+  int scale, val;
+  u64 sentries;
+}
+
+struct EvalReport
+{
+  DebugPasser[] passers;
+  Vals vals;
+
+  string toString()
+  {
+    import std.format;
+    string str = format("[Passers]\n");
+
+    int passers_total = 0;
+    foreach (passer; passers)
+    {
+      str ~= format("%s\n", passer); // ~ "\n" ~ passer.sentries.to_bitboard;
+      passers_total += passer.val;
+    }
+    str ~= format("Total = %s\n", passers_total);
+    return str;
+  }
+}
+
 // from Toga, i suppose
 enum AttWeight { Light = 2, Rook = 3, Queen = 5 };
 
@@ -77,17 +109,14 @@ struct EvalInfo
 class EvalSmart : Eval
 {
   EvalInfo ei;
+  EvalReport report;
   int[8] passer_scale;
   int[9] n_adj, r_adj;
 
   this(string tune = Tune.Def)
   {
     set(tune);
-    //log("[EvalSmart]");
-    //log(toString());
     init();
-
-    //log(pst);
   }
 
   override void init()
@@ -228,13 +257,25 @@ class EvalSmart : Eval
       foreach (sq; A1..SQ.size)
         pst[i][sq] = pst[i + 1][sq.opp];
 
+    //import std.format;
+    //for (int y = 7; y >= 0; y--)
+    //{
+    //  string row;
+    //  for (int x = 0; x < 8; x++)
+    //  {
+    //    SQ sq = to_sq(x, y);
+    //    row ~= format("%s ", pst[WK][sq].eg);
+    //  }
+    //  log(row);
+    //}
+
     // Passers ////////////////////////////////////////////////////
 
     auto unzero = (double x) => x > 0 ? x : .001;
     auto pscore = (double m, double k, int rank)
     {
-      auto nexp = (double k, int x) => 1 / (1 + exp(7 - k * x));
-      return cast(int)(m * nexp(k, rank) / nexp(k, 7));
+      auto nexp = (double k, int x) => 1 / (1 + exp(6 - k * x));
+      return cast(int)(m * nexp(k, rank) / nexp(k, 6));
     };
 
     for (int rank = 0; rank < 8; rank++)
@@ -326,6 +367,13 @@ class EvalSmart : Eval
   // 8/1K6/8/k4p2/4pp2/8/4PP2/8 w - - 0 0
   // 5k2/8/2p5/4p2p/3PP2P/4P3/7K/8 b - - 0 0
 
+  int eval_explained(const Board B, ref EvalReport er)
+  {
+    int val = eval(B);
+    er = report;
+    return val;
+  }
+
   override int eval(const Board B)
   {
     ei.clear();
@@ -369,6 +417,13 @@ class EvalSmart : Eval
 
       vals += pst[p][sq];
 
+      u64 back_friendly = Table.front(col.opp, sq) & B.piece[p];
+      u64 fore_friendly = Table.front(col, sq) & B.piece[p];
+
+      u64 cannot_pass = Table.front(col, sq) & B.piece[p.opp];
+      u64 has_support = Table.att_rear(col, sq) & B.piece[p];
+      u64 has_sentry = Table.att_span(col, sq) & B.piece[p.opp];
+
       // isolated
 
       if (!(Table.isolator(sq) & B.piece[p]))
@@ -378,19 +433,12 @@ class EvalSmart : Eval
 
       // doubled
 
-      u64 back_friendly = Table.front(col.opp, sq) & B.piece[p];
-      u64 fore_friendly = Table.front(col, sq) & B.piece[p];
-
       if (back_friendly && !fore_friendly) // most advanced one
       {
         vals -= Vals.both(popcnt(back_friendly) * term[Doubled]);
       }
 
       // blocked weak
-
-      u64 cannot_pass = Table.front(col, sq) & B.piece[p.opp];
-      u64 has_support = Table.att_rear(col, sq) & B.piece[p];
-      u64 has_sentry = Table.att_span(col, sq) & B.piece[p.opp];
 
       if (cannot_pass && !has_support)
       {
@@ -411,9 +459,7 @@ class EvalSmart : Eval
 
       if (!cannot_pass && !fore_friendly)
       {
-        auto pass = eval_passer!col(B, sq);
-        //log(sq, " = ", pass.eg);
-        vals += pass;
+        vals += eval_passer!col(B, sq);
       }
     }
     return vals;
@@ -446,6 +492,9 @@ class EvalSmart : Eval
 
   private Vals eval_passer(Color col)(const Board B, SQ sq)
   {
+    debug DebugPasser dpasser;
+    debug dpasser.sq = sq;
+
     const SQ king = bitscan(B.piece[BK.of(col)]);
     const SQ kopp = bitscan(B.piece[WK.of(col)]);
 
@@ -457,7 +506,10 @@ class EvalSmart : Eval
       if (win > 0)
       {
         int pawns = popcnt(B.piece[BP] | B.piece[WP]);
-        if (pawns == 1) kpk += term[Unstoppable];
+        if (pawns == 1)
+        {
+          kpk += term[Unstoppable];
+        }
       }
     }
 
@@ -469,9 +521,13 @@ class EvalSmart : Eval
     rank += B.color == col; // tempo
     const int scale = passer_scale[rank];
 
+    debug dpasser.scale = scale;
+    debug dpasser.sentries = sentries;
+
     if (!sentries) // Passer
     {
       v += term[Passer] * scale / 256;
+      debug dpasser.status = PasserStatus.Passer;
 
       if (!(Table.front(col, sq) & B.occ[col]) // Unstoppable
       &&  !B.has_pieces(col.opp))
@@ -483,6 +539,7 @@ class EvalSmart : Eval
         if (k_dist(kopp, prom) - turn > k_dist(sq, prom))
         {
           v += term[Unstoppable];
+          debug dpasser.status = PasserStatus.Unstoppable;
         }
       }
       else
@@ -497,6 +554,7 @@ class EvalSmart : Eval
         &&  k_dist(king, prom) <= 1)
         {
           v += term[Unstoppable];
+          debug dpasser.status = PasserStatus.King;
         }
       }
       else // Bonuses for increasing passers potential
@@ -504,6 +562,7 @@ class EvalSmart : Eval
         if (Table.psupport(col, sq) & B.piece[p]) // Supported
         {
           v += term[Supported] * scale / 256;
+          debug dpasser.supported = true;
         }
 
         u64 o = B.occ[0] | B.occ[1];
@@ -514,6 +573,7 @@ class EvalSmart : Eval
           if (B.see(move) > 0)
           {
             v += term[FreePasser];
+            debug dpasser.free = true;
           }
         }
 
@@ -536,10 +596,19 @@ class EvalSmart : Eval
       if (Table.front(col.opp, j) & B.piece[p])
       {
         v += term[Candidate] * scale / 256;
+        debug dpasser.status = PasserStatus.Candidate;
       }
     }
 
     v += kpk;
+
+    debug if (kpk > 0) dpasser.status = PasserStatus.Kpk;
+    debug dpasser.val = col ? v : -v;
+    debug if (dpasser.status != PasserStatus.None)
+    { 
+      report.passers ~= dpasser;
+    }
+
     return Vals(v / 2, v);
   }
 
@@ -590,8 +659,9 @@ class EvalSmart : Eval
     for (u64 bb = B.piece[p]; bb; bb = rlsb(bb))
     {
       const SQ sq = bitscan(bb);
-      const u64 o = B.occ[0] | B.occ[1] ^ B.piece[BQ.of(col)];
-      const u64 att = B.attack(p, sq, o);
+      const u64 att = B.attack(p, sq);
+      //const u64 o = B.occ[0] | B.occ[1] ^ B.piece[BQ.of(col)];
+      //const u64 att = B.attack(p, sq, o); // Buggy
 
       // king attacks
 
@@ -626,8 +696,9 @@ class EvalSmart : Eval
     for (u64 bb = B.piece[p]; bb; bb = rlsb(bb))
     {
       const SQ sq = bitscan(bb);
-      const u64 o = B.occ[0] | B.occ[1] ^ B.piece[BQ.of(col)];
-      const u64 att = B.attack(p, sq, o);
+      const u64 att = B.attack(p, sq);
+      //const u64 o = B.occ[0] | B.occ[1] ^ B.piece[BQ.of(col)];
+      //const u64 att = B.attack(p, sq, o); // Buggy
 
       // king attacks
 
