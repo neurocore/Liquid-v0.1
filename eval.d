@@ -31,6 +31,7 @@ enum Term
   Shield1, Shield2,
   PasserK, Candidate, Passer, Supported,
   Unstoppable, FreePasser,
+  XrayMul,
   Tempo,
   size
 }

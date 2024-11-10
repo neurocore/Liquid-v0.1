@@ -93,7 +93,6 @@ struct Tune
            ~ "Unstoppable:800 "
            ~ "Supported:100 "
            ~ "FreePasser:60 "
-           ~ "PinMul:5 "
-           ~ "XrayMul:3 "
+           ~ "XrayMul:12 "
            ~ "Tempo:15 ";
 }

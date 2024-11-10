@@ -58,12 +58,18 @@ const int[] weakness_push_table =
   128, 106, 86, 68, 52, 38, 26, 16, 8, 2
 ];
 
+const int[Piece.size + 2] xray_cost =
+[
+  0, 0, 0, 0, 0, 0, 34, 34, 192, 192, 256, 256, 0, 0
+];
+
 
 struct EvalInfo
 {
   int[Color.size] att_weight;
   int[Color.size] att_count;
   SQ[][Color.size] eg_weak;
+  u64 pinned;
 
   void clear()
   {
@@ -71,6 +77,7 @@ struct EvalInfo
     att_count.zeros;
     eg_weak[0] = [];
     eg_weak[1] = [];
+    pinned = Empty;
   }
 
   void add_attack(Color col, AttWeight amount, int count = 1)
@@ -119,172 +126,6 @@ class EvalSmart : Eval
     init();
   }
 
-  override void init()
-  {
-    // Building piece adjustments arrays //////////////////////////
-
-    for (int i = 0; i < 9; i++)
-    {
-      n_adj[i] = term[KnightAdj] * PAdj[i];
-      r_adj[i] = -term[RookAdj] * PAdj[i];
-    }
-
-    // Setting material scores  ///////////////////////////////////
-
-    score[WP] = 100;
-    score[WN] = term[MatKnight];
-    score[WB] = term[MatBishop];
-    score[WR] = term[MatRook];
-    score[WQ] = term[MatQueen];
-    score[WK] = 20000;
-
-    for (int i = 0; i < Piece.size; i += 2)
-      score[i] = -score[i + 1];
-
-    // Building piece-square table ////////////////////////////////
-
-    foreach (sq; A1..SQ.size)
-      foreach (p; BP..Piece.size)
-        pst[p][sq] = Vals.init;
-
-    // Pawns //////////////////////////////////////////////
-
-    int p = WP; 
-
-    // file
-    foreach (sq; A1..SQ.size)
-      pst[p][sq].op += PFile[sq.file] * term[PawnFile];
-
-    // center control
-    pst[p][D3].op += 10;
-    pst[p][E3].op += 10;
-
-    pst[p][D4].op += 20;
-    pst[p][E4].op += 20;
-
-    pst[p][D5].op += 10;
-    pst[p][E5].op += 10;
-
-    // Knights ////////////////////////////////////////////
-
-    p = WN;
-
-    // center
-    foreach (sq; A1..SQ.size)
-    {
-      pst[p][sq].op += NLine[sq.file] * term[KnightCenterOp];
-      pst[p][sq].op += NLine[sq.rank] * term[KnightCenterOp];
-      pst[p][sq].eg += NLine[sq.file] * term[KnightCenterEg];
-      pst[p][sq].eg += NLine[sq.rank] * term[KnightCenterEg];
-    }
-
-    // rank
-    foreach (sq; A1..SQ.size)
-      pst[p][sq].op += NRank[sq.rank] * term[KnightRank];
-
-    // back rank
-    foreach (sq; A1..A2)
-      pst[p][sq].op -= term[KnightBackRank];
-
-    // "trapped"
-    pst[p][A8].op -= term[KnightTrapped];
-    pst[p][H8].op -= term[KnightTrapped];
-
-    // Bishops ////////////////////////////////////////////
-
-    p = WP;
-
-    // center
-    foreach (sq; A1..SQ.size)
-    {
-      pst[p][sq].op += BLine[sq.file] * term[BishopCenterOp];
-      pst[p][sq].op += BLine[sq.rank] * term[BishopCenterOp];
-      pst[p][sq].eg += BLine[sq.file] * term[BishopCenterEg];
-      pst[p][sq].eg += BLine[sq.rank] * term[BishopCenterEg];
-    }
-
-    // back rank
-    foreach (sq; A1..A2)
-      pst[p][sq].op -= term[BishopBackRank];
-
-    // main diagonals
-    for (int i = 0; i < 8; i++)
-    {
-      pst[p][to_sq(i, i)].op     += term[BishopDiagonal];
-      pst[p][to_sq(i, 7 - i)].op += term[BishopDiagonal];
-    }
-
-    // Rooks //////////////////////////////////////////////
-
-    p = WR;
-
-    // file
-    foreach (sq; A1..SQ.size)
-      pst[p][sq].op += RFile[sq.file] * term[RookFileOp];
-
-    // Queens /////////////////////////////////////////////
-
-    p = WQ;
-
-    // center
-    foreach (sq; A1..SQ.size)
-    {
-      pst[p][sq].op += QLine[sq.file] * term[QueenCenterOp];
-      pst[p][sq].op += QLine[sq.rank] * term[QueenCenterOp];
-      pst[p][sq].eg += QLine[sq.file] * term[QueenCenterEg];
-      pst[p][sq].eg += QLine[sq.rank] * term[QueenCenterEg];
-    }
-
-    // back rank
-    foreach (sq; A1..A2)
-      pst[p][sq].op -= term[QueenBackRank];
-
-    // Kings //////////////////////////////////////////////
-
-    p = WK;
-
-    foreach (sq; A1..SQ.size)
-    {
-      pst[p][sq].op += KFile[sq.file] * term[KingFile];
-      pst[p][sq].op += KRank[sq.rank] * term[KingRank];
-      pst[p][sq].eg += KLine[sq.file] * term[KingCenterEg];
-      pst[p][sq].eg += KLine[sq.rank] * term[KingCenterEg];
-    }
-
-    // Symmetrical copy for black
-
-    for (int i = 0; i < 12; i += 2)
-      foreach (sq; A1..SQ.size)
-        pst[i][sq] = pst[i + 1][sq.opp];
-
-    //import std.format;
-    //for (int y = 7; y >= 0; y--)
-    //{
-    //  string row;
-    //  for (int x = 0; x < 8; x++)
-    //  {
-    //    SQ sq = to_sq(x, y);
-    //    row ~= format("%s ", pst[WK][sq].eg);
-    //  }
-    //  log(row);
-    //}
-
-    // Passers ////////////////////////////////////////////////////
-
-    auto unzero = (double x) => x > 0 ? x : .001;
-    auto pscore = (double m, double k, int rank)
-    {
-      auto nexp = (double k, int x) => 1 / (1 + exp(6 - k * x));
-      return cast(int)(m * nexp(k, rank) / nexp(k, 6));
-    };
-
-    for (int rank = 0; rank < 8; rank++)
-    {
-      const double k = unzero(term[PasserK]) / 32.0;
-      passer_scale[rank] = pscore(256, k, rank);
-    }
-  }
-
   // [Factors]
   // (Complexity/10)(Importance/10)=(5I-2C)
   //
@@ -306,6 +147,7 @@ class EvalSmart : Eval
   // + 14=18 sliding pieces support
   // + 24=16 50-moves rule
   // + 35=19 pawn eg key squares
+  // + 57=25 xrays & pins
 
   // [king safety]
   // + 78=26 attacks counts
@@ -313,7 +155,6 @@ class EvalSmart : Eval
   // - 26=26 tropism to king
   // - 34=17 pawn storm
 
-  // - 57=25 xrays & pins
   // - 24=16 contact check
   // - 55=15 outposts
   // - 34=14 op blockage patterns
@@ -395,14 +236,52 @@ class EvalSmart : Eval
   private int evaluate(const Board B)
   {
     Vals vals;
-    vals += evaluateP!White(B) - evaluateP!Black(B);
-    vals += evaluateN!White(B) - evaluateN!Black(B);
-    vals += evaluateB!White(B) - evaluateB!Black(B);
-    vals += evaluateR!White(B) - evaluateR!Black(B);
-    vals += evaluateQ!White(B) - evaluateQ!Black(B);
-    vals += evaluateK!White(B) - evaluateK!Black(B);
+    vals += eval_xrays!White(B) - eval_xrays!Black(B);
+    vals += evaluateP!White(B)  - evaluateP!Black(B);
+    vals += evaluateN!White(B)  - evaluateN!Black(B);
+    vals += evaluateB!White(B)  - evaluateB!Black(B);
+    vals += evaluateR!White(B)  - evaluateR!Black(B);
+    vals += evaluateQ!White(B)  - evaluateQ!Black(B);
+    vals += evaluateK!White(B)  - evaluateK!Black(B);
 
     return vals.tapered(B.phase);
+  }
+
+  private Vals eval_xrays(Color col)(const Board B)
+  {
+    Vals vals;
+    const u64 o = B.occ[0] | B.occ[1];
+    u64 valuable = B.piece[WK.of(col)];
+
+    foreach_reverse(pt; PieceType.Bishop .. PieceType.King)
+    {
+      Piece p = to_piece(pt, col);
+
+      for (u64 bb = B.piece[p]; bb; bb = rlsb(bb))
+      {
+        SQ sq = bitscan(bb);
+        u64 blockers = B.attack(p, sq) & o;
+        u64 xray = B.attack(p, sq, o ^ blockers) & valuable;
+
+        for (; xray; xray = rlsb(xray))
+        {
+          SQ j = bitscan(xray);
+          Piece a = B.square[j];
+          if (xray_cost[a] <= 0) continue;
+
+          if (B.occ[col] & Table.between(sq, j)) // xray
+          {
+            vals += Vals.both(xray_cost[a] * term[XrayMul] / 256);
+          }
+          else // pin
+          {
+            ei.pinned |= B.occ[col.opp] & Table.between(sq, j);
+          }
+        }
+      }
+      valuable |= B.piece[to_piece(pt, col.opp)];
+    }
+    return vals;
   }
 
   private Vals evaluateP(Color col)(const Board B)
@@ -630,7 +509,10 @@ class EvalSmart : Eval
       // pst & mobility
 
       vals += pst[p][sq];
-      vals += Vals.both(term[NMob] * popcnt(att) / 32);
+      if (!(ei.pinned & sq.bit))
+      {
+        vals += Vals.both(term[NMob] * popcnt(att) / 32);
+      }
 
       // adjustments
 
@@ -672,13 +554,18 @@ class EvalSmart : Eval
       // pst & mobility
 
       vals += pst[p][sq];
-      vals += Vals.both(term[BMob] * popcnt(att) / 32);
+      if (!(ei.pinned & sq.bit))
+      {
+        vals += Vals.both(term[BMob] * popcnt(att) / 32);
+      }
 
       // forks
 
-      u64 fork = att & (B.piece[WR.of(col)]
-                      | B.piece[WQ.of(col)]
-                      | B.piece[WK.of(col)]);
+      u64 valuable = B.piece[WR.of(col)]
+                   | B.piece[WQ.of(col)]
+                   | B.piece[WK.of(col)];
+
+      u64 fork = att & valuable;
 
       if (rlsb(fork)) vals += Vals.both(term[BishopFork]);
     }
@@ -709,7 +596,10 @@ class EvalSmart : Eval
       // pst & mobility
 
       vals += pst[p][sq];
-      vals += Vals.both(term[RMob] * popcnt(att) / 32);
+      if (!(ei.pinned & sq.bit))
+      {
+        vals += Vals.both(term[RMob] * popcnt(att) / 32);
+      }
 
       // adjustments
 
@@ -763,7 +653,10 @@ class EvalSmart : Eval
       // pst & mobility
 
       vals += pst[p][sq];
-      vals += Vals.both(term[QMob] * popcnt(att) / 32);
+      if (!(ei.pinned & sq.bit))
+      {
+        vals += Vals.both(term[QMob] * popcnt(att) / 32);
+      }
 
       // early queen
 
@@ -839,5 +732,171 @@ class EvalSmart : Eval
     }
 
     return vals;
+  }
+
+  override void init()
+  {
+    // Building piece adjustments arrays //////////////////////////
+
+    for (int i = 0; i < 9; i++)
+    {
+      n_adj[i] = term[KnightAdj] * PAdj[i];
+      r_adj[i] = -term[RookAdj] * PAdj[i];
+    }
+
+    // Setting material scores  ///////////////////////////////////
+
+    score[WP] = 100;
+    score[WN] = term[MatKnight];
+    score[WB] = term[MatBishop];
+    score[WR] = term[MatRook];
+    score[WQ] = term[MatQueen];
+    score[WK] = 20000;
+
+    for (int i = 0; i < Piece.size; i += 2)
+      score[i] = -score[i + 1];
+
+    // Building piece-square table ////////////////////////////////
+
+    foreach (sq; A1..SQ.size)
+      foreach (p; BP..Piece.size)
+        pst[p][sq] = Vals.init;
+
+    // Pawns //////////////////////////////////////////////
+
+    int p = WP; 
+
+    // file
+    foreach (sq; A1..SQ.size)
+      pst[p][sq].op += PFile[sq.file] * term[PawnFile];
+
+    // center control
+    pst[p][D3].op += 10;
+    pst[p][E3].op += 10;
+
+    pst[p][D4].op += 20;
+    pst[p][E4].op += 20;
+
+    pst[p][D5].op += 10;
+    pst[p][E5].op += 10;
+
+    // Knights ////////////////////////////////////////////
+
+    p = WN;
+
+    // center
+    foreach (sq; A1..SQ.size)
+    {
+      pst[p][sq].op += NLine[sq.file] * term[KnightCenterOp];
+      pst[p][sq].op += NLine[sq.rank] * term[KnightCenterOp];
+      pst[p][sq].eg += NLine[sq.file] * term[KnightCenterEg];
+      pst[p][sq].eg += NLine[sq.rank] * term[KnightCenterEg];
+    }
+
+    // rank
+    foreach (sq; A1..SQ.size)
+      pst[p][sq].op += NRank[sq.rank] * term[KnightRank];
+
+    // back rank
+    foreach (sq; A1..A2)
+      pst[p][sq].op -= term[KnightBackRank];
+
+    // "trapped"
+    pst[p][A8].op -= term[KnightTrapped];
+    pst[p][H8].op -= term[KnightTrapped];
+
+    // Bishops ////////////////////////////////////////////
+
+    p = WP;
+
+    // center
+    foreach (sq; A1..SQ.size)
+    {
+      pst[p][sq].op += BLine[sq.file] * term[BishopCenterOp];
+      pst[p][sq].op += BLine[sq.rank] * term[BishopCenterOp];
+      pst[p][sq].eg += BLine[sq.file] * term[BishopCenterEg];
+      pst[p][sq].eg += BLine[sq.rank] * term[BishopCenterEg];
+    }
+
+    // back rank
+    foreach (sq; A1..A2)
+      pst[p][sq].op -= term[BishopBackRank];
+
+    // main diagonals
+    for (int i = 0; i < 8; i++)
+    {
+      pst[p][to_sq(i, i)].op     += term[BishopDiagonal];
+      pst[p][to_sq(i, 7 - i)].op += term[BishopDiagonal];
+    }
+
+    // Rooks //////////////////////////////////////////////
+
+    p = WR;
+
+    // file
+    foreach (sq; A1..SQ.size)
+      pst[p][sq].op += RFile[sq.file] * term[RookFileOp];
+
+    // Queens /////////////////////////////////////////////
+
+    p = WQ;
+
+    // center
+    foreach (sq; A1..SQ.size)
+    {
+      pst[p][sq].op += QLine[sq.file] * term[QueenCenterOp];
+      pst[p][sq].op += QLine[sq.rank] * term[QueenCenterOp];
+      pst[p][sq].eg += QLine[sq.file] * term[QueenCenterEg];
+      pst[p][sq].eg += QLine[sq.rank] * term[QueenCenterEg];
+    }
+
+    // back rank
+    foreach (sq; A1..A2)
+      pst[p][sq].op -= term[QueenBackRank];
+
+    // Kings //////////////////////////////////////////////
+
+    p = WK;
+
+    foreach (sq; A1..SQ.size)
+    {
+      pst[p][sq].op += KFile[sq.file] * term[KingFile];
+      pst[p][sq].op += KRank[sq.rank] * term[KingRank];
+      pst[p][sq].eg += KLine[sq.file] * term[KingCenterEg];
+      pst[p][sq].eg += KLine[sq.rank] * term[KingCenterEg];
+    }
+
+    // Symmetrical copy for black
+
+    for (int i = 0; i < 12; i += 2)
+      foreach (sq; A1..SQ.size)
+        pst[i][sq] = pst[i + 1][sq.opp];
+
+    //import std.format;
+    //for (int y = 7; y >= 0; y--)
+    //{
+    //  string row;
+    //  for (int x = 0; x < 8; x++)
+    //  {
+    //    SQ sq = to_sq(x, y);
+    //    row ~= format("%s ", pst[WK][sq].eg);
+    //  }
+    //  log(row);
+    //}
+
+    // Passers ////////////////////////////////////////////////////
+
+    auto unzero = (double x) => x > 0 ? x : .001;
+    auto pscore = (double m, double k, int rank)
+    {
+      auto nexp = (double k, int x) => 1 / (1 + exp(6 - k * x));
+      return cast(int)(m * nexp(k, rank) / nexp(k, 6));
+    };
+
+    for (int rank = 0; rank < 8; rank++)
+    {
+      const double k = unzero(term[PasserK]) / 32.0;
+      passer_scale[rank] = pscore(256, k, rank);
+    }
   }
 }
