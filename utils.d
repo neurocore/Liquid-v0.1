@@ -141,6 +141,113 @@ template parse_san(string scheme)
   }
 }
 
+
+// Template function to parse expr for bitboard building
+// Syntax is simple: BN, WQ and so on are piece bitboards
+//            occ, white, black are respective occupancies
+// For escaping code that stay without change use curly {}
+// Other instructions are just passed through as is
+//
+// Example expression: ({Table.front(WP, E4)} | WP ) ^ occ
+// Result: (Table.front(WP, E4) | piece[WP] ) ^ (occ[0] | occ[1])
+
+template GenBitboardsExpr(string expr)
+{
+  import std.array, std.exception, std.ascii;
+
+  struct Chunk
+  {
+    string str;
+    bool raw;
+
+    // General job for replacing pieces and occupances with
+    //  actual code that might work inside Board class
+
+    string exchange()
+    {
+      if (raw) return str;
+
+      const string[] pieces =
+      [
+        "BP", "BN", "BB", "BR", "BQ", "BK",
+        "WP", "WN", "WB", "WR", "WQ", "WK",
+      ];
+
+      foreach (p; pieces)
+      {
+        str = str.replace(p, "piece[" ~ p ~ "]");
+      }
+
+      str = str.replace("Ps", "(piece[BP] | piece[WP])");
+      str = str.replace("Ns", "(piece[BN] | piece[WN])");
+      str = str.replace("Bs", "(piece[BB] | piece[WB])");
+      str = str.replace("Rs", "(piece[BR] | piece[WR])");
+      str = str.replace("Qs", "(piece[BQ] | piece[WQ])");
+      str = str.replace("Ks", "(piece[BK] | piece[WK])");
+
+      str = str.replace("Ls", "(piece[BB] | piece[WB] | piece[BN] | piece[WN])");
+      
+      str = str.replace("WL", "(piece[WN] | piece[WB])");
+      str = str.replace("BL", "(piece[BN] | piece[BB])");
+
+      str = str.replace("occ", "(occ[0] | occ[1])");
+      str = str.replace("black", "occ[0]");
+      str = str.replace("white", "occ[1]");
+
+      return str;
+    }
+  }
+
+  // Function that replaces curly braced {substrings} with special code
+  //  of type described in "Escaping" pattern (originally it was "@00")
+
+  private Chunk[] parse(string str)
+  {
+    Chunk[] chunks;
+    ulong start = 0;
+    int level = 0;
+
+    foreach (i, ch; str)
+    {
+      if (ch == '{')
+      {
+        if (!level) chunks ~= Chunk(expr[start .. i], false);
+        level++;
+        start = i;
+      }
+
+      if (ch == '}')
+      {
+        level--;
+        if (!level)
+        {
+          chunks ~= Chunk(expr[start + 1 .. i], true);
+          start = i + 1;
+        }
+      }
+    }
+    chunks ~= Chunk(expr[start .. $], false);
+
+    enforce(!level, "Broken curly braces pairing in bitboard expr");
+
+    return chunks;
+  }
+
+  string GenBitboardsExpr()
+  {
+    Chunk[] chunks = parse(expr);
+
+    string result;
+    foreach (chunk; chunks)
+    {
+      result ~= chunk.exchange();
+    }
+    //log(result);
+
+    return result;
+  }
+}
+
 void todo(string text, string file = __FILE__, size_t line = __LINE__)
 {
   //logf("TODO: %s:%d - %s\n", file, line, text);

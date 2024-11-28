@@ -52,6 +52,11 @@ class Board
     return B;
   }
 
+  inout u64 bb(string expr)()
+  {
+    return mixin(GenBitboardsExpr!expr);
+  }
+
   int eval(Eval E) const
   {
     return E.eval(this);
@@ -59,10 +64,9 @@ class Board
 
   int phase() const
   {
-    u64 queens = piece[BQ] | piece[WQ];
-    u64 rooks  = piece[BR] | piece[WR];
-    u64 lights = piece[BN] | piece[WN]
-               | piece[BB] | piece[WB];
+    u64 queens = bb!"Qs";
+    u64 rooks  = bb!"Rs";
+    u64 lights = bb!"Ls";
 
     int phase = Phase.Total
               - Phase.Queen * popcnt(queens)
@@ -90,25 +94,16 @@ class Board
 
     // Insufficient material
 
-    int total = popcnt(occ[0] | occ[1]);
+    int total = popcnt(bb!"occ");
 
     if (total == 3)
     {
-      u64 lights = piece[BN] | piece[WN] | piece[BB] | piece[WB];
-      if (lights) return true; // KLK
+      if (bb!"Ls") return true; // KLK
     }
     else if (total == 4)
     {
-      if (popcnt(piece[BN] | piece[WN]) == 2) // KNNK, KNKN
-      {
-        return true;
-      }
-
-      if (only_one(piece[BN] | piece[BB]) // KLKL
-      &&  only_one(piece[WN] | piece[WB]))
-      {
-        return true;
-      }
+      if (popcnt(bb!"Ns") == 2) return true; // KNNK, KNKN
+      if (only_one(bb!"BL") && only_one(bb!"WL")) return true; // KLKL
     }
 
     return false;
@@ -161,16 +156,16 @@ class Board
 
   u64 get_attacks(u64 o, SQ sq) const
   {
-    const u64 bq = piece[BB] | piece[WB] | piece[BQ] | piece[WQ];
-    const u64 rq = piece[BR] | piece[WR] | piece[BQ] | piece[WQ];
+    const u64 bq = bb!"Bs | Qs";
+    const u64 rq = bb!"Rs | Qs";
 
     u64 att = Empty;
     att |= bq & b_att(o, sq);
     att |= rq & r_att(o, sq);
     att |= piece[BP] & Table.atts(WP, sq);
     att |= piece[WP] & Table.atts(BP, sq);
-    att |= (piece[BN] | piece[WN]) & Table.atts(BN, sq);
-    att |= (piece[BK] | piece[WK]) & Table.atts(BK, sq);
+    att |= bb!"Ns" & Table.atts(BN, sq);
+    att |= bb!"Ks" & Table.atts(BK, sq);
     return att;
   }
 
@@ -340,8 +335,8 @@ class Board
 
     u64 consider_xrays(u64 o, SQ sq)
     {
-      const u64 bq = piece[BB] | piece[WB] | piece[BQ] | piece[WQ];
-      const u64 rq = piece[BR] | piece[WR] | piece[BQ] | piece[WQ];
+      const u64 bq = bb!"Bs | Qs";
+      const u64 rq = bb!"Rs | Qs";
 
       u64 att = Empty;
       att |= o & bq & b_att(o, sq);
@@ -355,7 +350,7 @@ class Board
     int p = square[move.from];
 
     u64 o       = occ[0] | occ[1];
-    u64 xrayers = o ^ piece[BN] ^ piece[WN] ^ piece[BK] ^ piece[WK];
+    u64 xrayers = o ^ bb!"Ns | Ks";
     u64 from_bb = move.from.bit;
     u64 attadef = get_attacks(o, move.to) | from_bb;
     gain[d]     = value[square[move.to]];
