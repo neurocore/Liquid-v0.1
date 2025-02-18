@@ -1,3 +1,4 @@
 *
 !*.d
 !.gitignore
+!readme.md
