@@ -2,3 +2,5 @@
 !*.d
 !.gitignore
 !readme.md
+!build.bat
+!deploy.bat
