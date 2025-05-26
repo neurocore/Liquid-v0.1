@@ -57,9 +57,9 @@ class Board
     return mixin(GenBitboardsExpr!expr);
   }
 
-  int eval(Eval E) const
+  int eval(Eval E, int alpha, int beta) const
   {
-    return E.eval(this);
+    return E.eval(this, alpha, beta);
   }
 
   int phase() const

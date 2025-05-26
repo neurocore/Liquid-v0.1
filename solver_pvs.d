@@ -79,7 +79,7 @@ class SolverPVS : Solver
 
     timer.start();
     auto ms = undo.ms;
-    undo.ms.init();
+    ms.init();
 
     foreach (Move move; ms)
     {
@@ -218,7 +218,7 @@ class SolverPVS : Solver
 
     // 2. Futility Pruning
 
-    int static_eval = B.eval(E);
+    int static_eval = B.eval(E, alpha, beta);
 
     if (!in_pv
     &&  !in_check
@@ -382,13 +382,13 @@ class SolverPVS : Solver
     bool in_check = B.in_check;
 
     //if (!in_check)
-    {
-      int stand_pat = B.eval(E);
+    //{
+      int stand_pat = B.eval(E, alpha, beta);
       if (stand_pat >= beta) return beta;
       if (stand_pat > alpha) alpha = stand_pat;
-    }
+    //}
 
-    if (ply >= Limits.Plies) return B.eval(E);
+    if (ply >= Limits.Plies) return stand_pat; // B.eval(E, alpha, beta);
 
     // Looking all attack moves
 

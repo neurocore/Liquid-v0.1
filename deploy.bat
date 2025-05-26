@@ -12,6 +12,7 @@ for %%f in (*%ext%) do (
   )
 )
 
-ldc2 -release -of=Liquid_v0_1.exe %files% && Liquid_v0_1.exe
+ldc2 -release -of=Liquid_v0_1.exe %files% && ^
+move Liquid_v0_1.exe C:\neurocore\downloads\Arena\Engines
 
 endlocal

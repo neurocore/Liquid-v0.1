@@ -57,7 +57,7 @@ class Eval
   int[Term.size] term;
   int[Piece.size] score;
   Vals[SQ.size][Piece.size] pst;
-  abstract int eval(const Board B);
+  abstract int eval(const Board B, int alpha, int beta);
   abstract void init();
 
   string get() const
@@ -112,7 +112,7 @@ class EvalSimple : Eval
     score = [-100, 100, -300, 300, -300, 300, -500, 500, -900, 900, -20000, 20000];
   }
 
-  override int eval(const Board B) const
+  override int eval(const Board B, int alpha, int beta) const
   {
     int val = 0;
     

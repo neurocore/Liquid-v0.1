@@ -210,20 +210,30 @@ class EvalSmart : Eval
 
   int eval_explained(const Board B, ref EvalReport er)
   {
-    int val = eval(B);
+    int val = eval(B, -Val.Inf, Val.Inf);
     er = report;
     return val;
   }
 
-  override int eval(const Board B)
+  override int eval(const Board B, int alpha, int beta)
   {
     ei.clear();
     int val = 0;
     
-    for (int i = 0; i < BK; i++)
+    for (int i = 0; i < BK; i++) // material
     {
       const u64 bb = B.piece[i];
       val += score[i] * popcnt(bb);
+    }
+
+    const int margin = 200; // Lazy Eval
+    if (val - margin > alpha
+    &&  val + margin < beta)
+    {
+      // probably check here:
+      // - far advanced opponent passer
+      // - king in danger (not in endgame)
+      return val;
     }
 
     val += evaluate(B); // collecting ei
